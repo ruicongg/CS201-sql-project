@@ -3,22 +3,20 @@ package edu.smu.smusql;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import edu.smu.smusql.parser.Parser;
+
 public class Engine {
     // v1: uses hash map of tableName to Table
     private final Map<String, Table> tables = new HashMap<>();
 
     public String executeSQL(String query) {
-        String[] tokens = query.trim().split("\\s+");
-        String command = tokens[0].toUpperCase();
-
-        return switch (command) {
-            case "CREATE" -> create(tokens);
-            case "INSERT" -> insert(tokens);
-            case "SELECT" -> select(tokens);
-            case "UPDATE" -> update(tokens);
-            case "DELETE" -> delete(tokens);
-            default -> "ERROR: Unknown command";
-        };
+        /*
+         * Basic Input Validation
+         */
+        if (query == null || query.length() == 0) {
+            return "ERROR: No command found";
+        }
+        return Parser.parseStatement(query);
     }
 
     public String insert(String[] tokens) {
