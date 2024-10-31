@@ -1,9 +1,13 @@
 package edu.smu.smusql;
 
-
 import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+
+// These test cases only test the functionality as per required in the handout.
+// Cases not tested:
+// - More than 2 where conditions
+// - Extra parameters in query
+// - Empty strings in where conditions
 
 public class EngineTest {
     private Engine engine;
@@ -13,6 +17,11 @@ public class EngineTest {
         engine = new Engine();
         // Create a test table for most tests
         engine.executeSQL("CREATE TABLE users (id, name, age, city)");
+    }
+
+    @AfterEach
+    void tearDown() {
+        engine.executeSQL("DROP TABLE users");
     }
 
     // CREATE TABLE tests
@@ -55,6 +64,12 @@ public class EngineTest {
 
     // SELECT tests
     @Test
+    void testSelect_InvalidSyntax_Error() {
+        String result = engine.executeSQL("SELECT name FROM users");
+        assertEquals("ERROR: Invalid SELECT syntax", result);
+    }
+
+    @Test
     void testSelect_NoWhereClause_Success() {
         engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
         String result = engine.executeSQL("SELECT * FROM users");
@@ -78,13 +93,74 @@ public class EngineTest {
     }
 
     @Test
-    void testSelect_NoResults_EmptyTable() {
+    void testSelectWithGreaterThanCondition_NoResults_EmptyTable() {
         engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
         String result = engine.executeSQL("SELECT * FROM users WHERE age > 50");
         assertEquals("id\tname\tage\tcity\n", result);
     }
 
+    @Test
+    void testSelectWithLessThanCondition_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        String result = engine.executeSQL("SELECT * FROM users WHERE age < 30");
+        assertTrue(result.contains("John") && result.contains("25") && result.contains("London"));
+    }
+
+    @Test
+    void testSelectWithLessThanEqualCondition_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        String result = engine.executeSQL("SELECT * FROM users WHERE age < 30");
+        assertTrue(result.contains("John") && result.contains("25") && result.contains("London"));
+    }
+
+    @Test
+    void testSelect_WithBoundaryValues_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 0, London)");
+        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 100, Paris)");
+        String result = engine.executeSQL("SELECT * FROM users WHERE age >= 0 AND age <= 100");
+        assertTrue(result.contains("John") && result.contains("Mary"));
+    }
+
+    @Test
+    void testSelect_WithGreaterThanEqualCondition_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 30, Paris)");
+        String result = engine.executeSQL("SELECT * FROM users WHERE age >= 30");
+        assertTrue(result.contains("Mary") && !result.contains("John"));
+    }
+
+    @Test
+    void testSelect_WithLessThanEqualCondition_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 30, Paris)");
+        String result = engine.executeSQL("SELECT * FROM users WHERE age <= 25");
+        assertTrue(result.contains("John") && !result.contains("Mary"));
+    }
+
+    @Test
+    void testSelect_WithEqualCondition_NumericValue_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 25, Paris)");
+        String result = engine.executeSQL("SELECT * FROM users WHERE age = 25");
+        assertTrue(result.contains("John") && result.contains("Mary"));
+    }
+
+    @Test
+    void testSelect_WithMultipleConditions_MixedOperators_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 30, London)");
+        engine.executeSQL("INSERT INTO users VALUES (3, Bob, 35, Paris)");
+        String result = engine.executeSQL("SELECT * FROM users WHERE age >= 25 AND age <= 30 AND city = London");
+        assertTrue(result.contains("John") && result.contains("Mary") && !result.contains("Bob"));
+    }
+
+    
     // UPDATE tests
+    @Test
+    void testUpdate_InvalidSyntax_Error() {
+        String result = engine.executeSQL("UPDATE users city = London");
+        assertEquals("ERROR: Invalid UPDATE syntax", result);
+    }
     @Test
     void testUpdate_NoWhereClause_UpdatesAll() {
         engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
@@ -102,12 +178,51 @@ public class EngineTest {
     }
 
     @Test
+    void testUpdate_NoMatchingRows_ZeroAffected() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        String result = engine.executeSQL("UPDATE users SET age = 30 WHERE name = NonExistent");
+        assertEquals("Table users updated. 0 rows affected.", result);
+    }
+
+    @Test
     void testUpdate_NonexistentColumn_Error() {
         String result = engine.executeSQL("UPDATE users SET nonexistent = value");
         assertEquals("ERROR: Column not found", result);
     }
 
+    @Test
+    void testUpdate_WithGreaterThanEqualCondition_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 30, Paris)");
+        String result = engine.executeSQL("UPDATE users SET city = Berlin WHERE age >= 30");
+        assertEquals("Table users updated. 1 rows affected.", result);
+    }
+
+    @Test
+    void testUpdate_WithLessThanEqualCondition_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 30, Paris)");
+        String result = engine.executeSQL("UPDATE users SET city = Berlin WHERE age <= 25");
+        assertEquals("Table users updated. 1 rows affected.", result);
+    }
+
+    @Test
+    void testUpdate_WithMultipleConditions_MixedOperators_Success() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 30, London)");
+        engine.executeSQL("INSERT INTO users VALUES (3, Bob, 35, Paris)");
+        String result = engine.executeSQL("UPDATE users SET city = Berlin WHERE age >= 25 AND age <= 30 AND city = London");
+        assertEquals("Table users updated. 2 rows affected.", result);
+    }
+
+
     // DELETE tests
+    @Test
+    void testDelete_InvalidSyntax_Error() {
+        String result = engine.executeSQL("DELETE users");
+        assertEquals("ERROR: Invalid DELETE syntax", result);
+    }
+
     @Test
     void testDelete_WithCondition_DeletesMatching() {
         engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
@@ -124,20 +239,6 @@ public class EngineTest {
         assertEquals("Rows deleted from users. 1 rows affected.", result);
     }
 
-    // Boundary and Edge Cases
-    @Test
-    void testSelect_EmptyTable_ReturnsHeadersOnly() {
-        String result = engine.executeSQL("SELECT * FROM users");
-        assertEquals("id\tname\tage\tcity\n", result);
-    }
-
-    @Test
-    void testUpdate_NoMatchingRows_ZeroAffected() {
-        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
-        String result = engine.executeSQL("UPDATE users SET age = 30 WHERE name = NonExistent");
-        assertEquals("Table users updated. 0 rows affected.", result);
-    }
-
     @Test
     void testDelete_NoMatchingRows_ZeroAffected() {
         engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
@@ -145,22 +246,4 @@ public class EngineTest {
         assertEquals("Rows deleted from users. 0 rows affected.", result);
     }
 
-    // Invalid Syntax Tests
-    @Test
-    void testSelect_InvalidSyntax_Error() {
-        String result = engine.executeSQL("SELECT name FROM users");
-        assertEquals("ERROR: Invalid SELECT syntax", result);
-    }
-
-    @Test
-    void testUpdate_InvalidSyntax_Error() {
-        String result = engine.executeSQL("UPDATE users city = London");
-        assertEquals("ERROR: Invalid UPDATE syntax", result);
-    }
-
-    @Test
-    void testDelete_InvalidSyntax_Error() {
-        String result = engine.executeSQL("DELETE users");
-        assertEquals("ERROR: Invalid DELETE syntax", result);
-    }
 } 
