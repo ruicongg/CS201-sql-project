@@ -1,6 +1,7 @@
 package edu.smu.smusql;
 
 import java.util.*;
+import edu.smu.smusql.lsm.*;
 
 // @author ziyuanliu@smu.edu.sg
 
@@ -29,6 +30,9 @@ public class Main {
                 long elapsedTime = stopTime - startTime;
                 double elapsedTimeInSecond = (double) elapsedTime / 1_000_000_000;
                 System.out.println("Time elapsed: " + elapsedTimeInSecond + " seconds");
+                break;
+            } else if (query.equalsIgnoreCase("lsm")) {
+                LSMTreeTester.testLSM();
                 break;
             }
 

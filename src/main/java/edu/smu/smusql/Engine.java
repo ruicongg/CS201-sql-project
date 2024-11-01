@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import edu.smu.smusql.parser.*;
+
 public class Engine {
     // v1: uses hash map of tableName to Table
     private final Map<String, Table> tables = new HashMap<>();
