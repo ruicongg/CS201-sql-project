@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Map;
 
 public class WhereCondition {
-    String column;
-    String operator;
-    String value;
-    String logicalOperator; // AND/OR with next condition
+    private String column;
+    private String operator;
+    private String value;
+    private String logicalOperator; // AND/OR with next condition
 
     public WhereCondition(String column, String operator, String value) {
         this.column = column;
@@ -71,6 +71,19 @@ public class WhereCondition {
         }
     }
 
-    
+    public String getOperator() {
+        return operator;
+    }
+
+    public String getColumn() {
+        return column;
+    }
+
+    public String getValue() {
+        return value;
+    }
+    public String getLogicalOperator() {
+        return logicalOperator;
+    }
 
 }
