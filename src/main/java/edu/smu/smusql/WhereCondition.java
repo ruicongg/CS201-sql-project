@@ -20,8 +20,8 @@ public class WhereCondition {
     }
 
 
-    public boolean evaluate(Map<String, String> row) {
-        String columnValue = row.get(column);
+    public boolean evaluate(RowEntry row) {
+        String columnValue = row.getValue(column);
         if (columnValue == null) {
             return false;
         }
