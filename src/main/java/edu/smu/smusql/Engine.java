@@ -3,46 +3,55 @@ package edu.smu.smusql;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import edu.smu.smusql.parser.Parser;
+import edu.smu.smusql.parser.InvalidCommandException;
+import edu.smu.smusql.parser.*;
 public class Engine {
     // v1: uses hash map of tableName to Table
     private final Map<String, Table> tables = new HashMap<>();
 
     public String executeSQL(String query) {
-        String[] tokens = query.trim().split("\\s+");
-        String command = tokens[0].toUpperCase();
-
-        return switch (command) {
-            case "CREATE" -> create(tokens);
-            case "INSERT" -> insert(tokens);
-            case "SELECT" -> select(tokens);
-            case "UPDATE" -> update(tokens);
-            case "DELETE" -> delete(tokens);
-            default -> "ERROR: Unknown command";
-        };
+        /*
+         * Basic Input Validation
+         */
+        try {
+            if (query == null || query.length() == 0) {
+                throw new InvalidCommandException("ERROR: No command found");
+            }
+            Object parsedStatement = Parser.parseStatement(query);
+            
+            if (parsedStatement instanceof Create create) {
+                return create(create);
+            } else if (parsedStatement instanceof Insert insert) {
+                return insert(insert);
+            } else if (parsedStatement instanceof Select select) {
+                return select(select);
+            } else if (parsedStatement instanceof Update update) {
+                return update(update);
+            } else if (parsedStatement instanceof Delete delete) {
+                return delete(delete);
+            } else {
+                throw new InvalidCommandException("ERROR:Unsupported command type");
+            }
+        } catch (InvalidCommandException e) {
+            return e.getMessage();
+        }
     }
 
-    public String insert(String[] tokens) {
-        if (!tokens[1].toUpperCase().equals("INTO")) {
-            return "ERROR: Invalid INSERT INTO syntax";
-        }
-        // Valid command:
-        // INSERT INTO tableName VALUES (value1, value2, value3, ...)
-        if (tokens.length < 5) {
-            return "ERROR: Invalid INSERT INTO syntax";
-        }
+    public String insert(Insert insert) {
+        
 
-        String tableName = tokens[2];
+        String tableName = insert.getTablename();
         Table table = tables.get(tableName);
         if (table == null) {
-            return "ERROR: Table not found";
+            throw new InvalidCommandException("ERROR: Table not found");
         }
 
-        String valueList = queryBetweenParentheses(tokens, 4);
-        List<String> values = parseValuesToList(valueList);
+        List<String> values = insert.getValues();
         List<String> columns = table.getColumns();
 
         if (values.size() != columns.size()) {
-            return "ERROR: Column count doesn't match value count";
+            throw new InvalidCommandException("ERROR: Column count doesn't match value count");
         }
 
         Map<String, String> row = createRowMap(columns, values);
@@ -50,21 +59,14 @@ public class Engine {
         return "Row inserted into " + tableName;
     }
 
-    public String delete(String[] tokens) {
-        if (!tokens[1].toUpperCase().equals("FROM")) {
-            return "ERROR: Invalid DELETE syntax";
-        }
-
-        String tableName = tokens[2];
+    public String delete(Delete delete) {
+        
+        String tableName = delete.getTablename();
         Table table = tables.get(tableName);
         if (table == null) {
-            return "ERROR: Table not found";
+            throw new InvalidCommandException("ERROR: Table not found");
         }
-
-        // Valid command:
-        // DELETE FROM tableName WHERE conditions
-        //                             ^ index 4
-        List<WhereCondition> conditions = parseWhereClause(tokens, 4);
+        List<WhereCondition> conditions = delete.getConditions();
         List<Map<String, String>> rows = table.getRows();
         List<Map<String, String>> remainingRows = new ArrayList<>();
         int deletedCount = 0;
@@ -81,25 +83,21 @@ public class Engine {
         return "Rows deleted from " + tableName + ". " + deletedCount + " rows affected.";
     }
 
-    public String select(String[] tokens) {
-        // Valid command:
-        // SELECT * FROM tableName (only handles select * as per handout)
-        if (!tokens[1].equals("*") || !tokens[2].toUpperCase().equals("FROM")) {
-            return "ERROR: Invalid SELECT syntax";
-        }
+    public String select(Select select) {
+    
 
-        String tableName = tokens[3];
+        String tableName = select.getTablename();
         Table table = tables.get(tableName);
         if (table == null) {
-            return "ERROR: Table not found";
+            throw new InvalidCommandException("ERROR: Table not found");
         }
 
         List<String> columns = table.getColumns();
         List<Map<String, String>> rows;
 
         // If there's a WHERE clause
-        if (tokens.length > 4 && tokens[4].toUpperCase().equals("WHERE")) {
-            List<WhereCondition> conditions = parseWhereClause(tokens, 5);
+        if (select.getConditions().size() > 0) {
+            List<WhereCondition> conditions = select.getConditions();
             
             // Use index for the first condition if possible
             WhereCondition firstCondition = conditions.get(0);
@@ -133,32 +131,28 @@ public class Engine {
         return result.toString();
     }
 
-    public String update(String[] tokens) {
-        // Valid command:
-        // UPDATE tableName SET column = value [WHERE conditions]
-        if (tokens.length < 6 || !tokens[2].toUpperCase().equals("SET") || !tokens[4].equals("=")) {
-            return "ERROR: Invalid UPDATE syntax";
-        }
+    public String update(Update update) {
 
-        String tableName = tokens[1];
+
+        String tableName = update.getTablename();
         Table table = tables.get(tableName);
         if (table == null) {
-            return "ERROR: Table not found";
+            throw new InvalidCommandException("ERROR: Table not found");
         }
 
-        String setColumn = tokens[3];
-        String newValue = tokens[5];
+        String setColumn = update.getColumnname();
+        String newValue = update.getValue();
 
         if (!table.getColumns().contains(setColumn)) {
-            return "ERROR: Column not found";
+            throw new InvalidCommandException("ERROR: Column not found");
         }
 
         List<Map<String, String>> rows = table.getRows();
         int updatedCount = 0;
 
         // If there's a WHERE clause
-        if (tokens.length > 6 && tokens[6].toUpperCase().equals("WHERE")) {
-            List<WhereCondition> conditions = parseWhereClause(tokens, 7);
+        if (update.getConditions().size() > 0) {
+            List<WhereCondition> conditions = update.getConditions();
             
             // Use index for the first condition if possible
             WhereCondition firstCondition = conditions.get(0);
@@ -196,19 +190,15 @@ public class Engine {
         return String.format("Table %s updated. %d rows affected.", tableName, updatedCount);
     }
 
-    public String create(String[] tokens) {
-        if (!tokens[1].equalsIgnoreCase("TABLE")) {
-            return "ERROR: Invalid CREATE TABLE syntax";
-        }
-
-        String tableName = tokens[2];
+    public String create(Create create) {
+    
+        String tableName = create.getTablename();
         Table existingTable = tables.get(tableName);
         if (existingTable != null) {
-            return "ERROR: Table already exists";
+            throw new InvalidCommandException("ERROR: Table already exists");
         }
 
-        String columnList = queryBetweenParentheses(tokens, 3);
-        List<String> columns = parseValuesToList(columnList);
+        List<String> columns = create.getColumns();
 
         Table newTable = new Table(tableName, columns);
         tables.put(tableName, newTable);
@@ -232,43 +222,4 @@ public class Engine {
         return conditions.stream().allMatch(condition -> condition.evaluate(row));
     }
 
-    private String queryBetweenParentheses(String[] tokens, int startIndex) {
-        StringBuilder result = new StringBuilder();
-        for (int i = startIndex; i < tokens.length; i++) {
-            result.append(tokens[i]).append(" ");
-        }
-        return result.toString().trim().replaceAll("\\(", "").replaceAll("\\)", "");
-    }
-
-    private List<String> parseValuesToList(String valueList) {
-        return Arrays.stream(valueList.split(","))
-                     .map(String::trim)
-                     .toList();
-    }
-
-    private List<WhereCondition> parseWhereClause(String[] tokens, int startIndex) {
-        List<WhereCondition> conditions = new ArrayList<>();
-
-        for (int i = startIndex; i < tokens.length; i += 4) {
-            WhereCondition condition = new WhereCondition(
-                tokens[i], // column
-                tokens[i + 1], // operator
-                tokens[i + 2] // value
-            );
-            // [AND/OR] <- index i + 3
-            if (hasLogicalOperator(tokens, i + 3)) {
-                condition.logicalOperator = tokens[i + 3].toUpperCase();
-            }
-
-            conditions.add(condition);
-        }
-
-        return conditions;
-    }
-
-    private boolean hasLogicalOperator(String[] tokens, int index) {
-        return index < tokens.length &&
-                (tokens[index].equalsIgnoreCase("AND") ||
-                        tokens[index].equalsIgnoreCase("OR"));
-    }
 }

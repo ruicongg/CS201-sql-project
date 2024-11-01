@@ -15,6 +15,10 @@ public class WhereCondition {
         this.value = value;
     }
 
+    public void setLogicalOperator(String logicalOperator) {
+        this.logicalOperator = logicalOperator;
+    }
+
 
     public boolean evaluate(Map<String, String> row) {
         String columnValue = row.get(column);
