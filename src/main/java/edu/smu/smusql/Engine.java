@@ -3,8 +3,6 @@ package edu.smu.smusql;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import edu.smu.smusql.parser.Parser;
-import edu.smu.smusql.parser.InvalidCommandException;
 import edu.smu.smusql.parser.*;
 public class Engine {
     // v1: uses hash map of tableName to Table
@@ -42,10 +40,7 @@ public class Engine {
         
 
         String tableName = insert.getTablename();
-        Table table = tables.get(tableName);
-        if (table == null) {
-            throw new InvalidCommandException("ERROR: Table not found");
-        }
+        Table table = getTableOrThrow(tableName);
 
         List<String> values = insert.getValues();
         List<String> columns = table.getColumns();
@@ -62,10 +57,7 @@ public class Engine {
     public String delete(Delete delete) {
         
         String tableName = delete.getTablename();
-        Table table = tables.get(tableName);
-        if (table == null) {
-            throw new InvalidCommandException("ERROR: Table not found");
-        }
+        Table table = getTableOrThrow(tableName);
         List<WhereCondition> conditions = delete.getConditions();
         List<Map<String, String>> rows = table.getRows();
         List<Map<String, String>> remainingRows = new ArrayList<>();
@@ -87,58 +79,18 @@ public class Engine {
     
 
         String tableName = select.getTablename();
-        Table table = tables.get(tableName);
-        if (table == null) {
-            throw new InvalidCommandException("ERROR: Table not found");
-        }
+        Table table = getTableOrThrow(tableName);
 
         List<String> columns = table.getColumns();
-        List<Map<String, String>> rows;
-
-        // If there's a WHERE clause
-        if (select.getConditions().size() > 0) {
-            List<WhereCondition> conditions = select.getConditions();
-            
-            // Use index for the first condition if possible
-            WhereCondition firstCondition = conditions.get(0);
-            if (firstCondition.operator.equals("=")) {
-                // Use index lookup for equality conditions
-                rows = table.findRowsByColumnValue(firstCondition.column, firstCondition.value);
-                // Filter remaining conditions
-                rows = rows.stream()
-                          .filter(row -> evaluateConditions(conditions, row))
-                          .toList();
-            } else {
-                // Full scan for non-equality conditions
-                rows = table.getRows().stream()
-                           .filter(row -> evaluateConditions(conditions, row))
-                           .toList();
-            }
-        } else {
-            rows = table.getRows();
-        }
-
-        StringBuilder result = new StringBuilder();
-        result.append(String.join("\t", columns)).append("\n"); // Print column headers
-        
-        for (Map<String, String> row : rows) {
-            for (String column : columns) {
-                result.append(row.getOrDefault(column, "NULL")).append("\t");
-            }
-            result.append("\n");
-        }
-
-        return result.toString();
+        List<Map<String, String>> rows = processWhereConditions(table, select.getConditions());
+        return formatTableOutput(columns, rows);
     }
 
     public String update(Update update) {
 
 
         String tableName = update.getTablename();
-        Table table = tables.get(tableName);
-        if (table == null) {
-            throw new InvalidCommandException("ERROR: Table not found");
-        }
+        Table table = getTableOrThrow(tableName);
 
         String setColumn = update.getColumnname();
         String newValue = update.getValue();
@@ -147,46 +99,12 @@ public class Engine {
             throw new InvalidCommandException("ERROR: Column not found");
         }
 
-        List<Map<String, String>> rows = table.getRows();
+        List<Map<String, String>> rows = processWhereConditions(table, update.getConditions());
         int updatedCount = 0;
-
-        // If there's a WHERE clause
-        if (update.getConditions().size() > 0) {
-            List<WhereCondition> conditions = update.getConditions();
-            
-            // Use index for the first condition if possible
-            WhereCondition firstCondition = conditions.get(0);
-            if (firstCondition.operator.equals("=")) {
-                // Get matching rows using index
-                List<Map<String, String>> matchingRows = table.findRowsByColumnValue(
-                    firstCondition.column, 
-                    firstCondition.value
-                );
-                
-                // Update matching rows that satisfy all conditions
-                for (Map<String, String> row : matchingRows) {
-                    if (evaluateConditions(conditions, row)) {
-                        row.put(setColumn, newValue);
-                        updatedCount++;
-                    }
-                }
-            } else {
-                // Full scan for non-equality conditions
-                for (Map<String, String> row : rows) {
-                    if (evaluateConditions(conditions, row)) {
-                        row.put(setColumn, newValue);
-                        updatedCount++;
-                    }
-                }
-            }
-        } else {
-            // Update all rows if no WHERE clause
-            for (Map<String, String> row : rows) {
-                row.put(setColumn, newValue);
-                updatedCount++;
-            }
+        for (Map<String, String> row : rows) {
+            row.put(setColumn, newValue);
+            updatedCount++;
         }
-
         return String.format("Table %s updated. %d rows affected.", tableName, updatedCount);
     }
 
@@ -220,6 +138,77 @@ public class Engine {
 
     private boolean evaluateConditions(List<WhereCondition> conditions, Map<String, String> row) {
         return conditions.stream().allMatch(condition -> condition.evaluate(row));
+    }
+
+    private String formatTableOutput(List<String> columns, List<Map<String, String>> rows) {
+        StringBuilder result = new StringBuilder();
+        // Headers
+        result.append(String.join("\t", columns))
+              .append("\n");
+        
+        // Rows
+
+        for (Map<String, String> row : rows) {
+            result.append(row.getOrDefault(columns.get(0), "NULL"));
+        }
+        for (Map<String, String> row : rows) {
+            for (int i = 1; i < columns.size(); i++) {
+                result.append("\t");
+                result.append(row.getOrDefault(columns.get(i), "NULL"));
+            }
+            result.append("\n");
+        }
+        
+        return result.toString();
+    }
+
+    private Table getTableOrThrow(String tableName) {
+        return Optional.ofNullable(tables.get(tableName))
+                      .orElseThrow(() -> new InvalidCommandException("ERROR: Table not found"));
+    }
+
+    private List<Map<String, String>> processWhereConditions(Table table, List<WhereCondition> conditions) {
+        if (conditions.isEmpty()) {
+            return table.getRows();
+        }
+
+        // Get equality conditions that can use indices
+        List<WhereCondition> equalityConditions = new ArrayList<>();
+        List<WhereCondition> remainingConditions = new ArrayList<>();
+        for (WhereCondition condition : conditions) {
+            if (condition.getOperator().equals("=")) {
+                equalityConditions.add(condition);
+            } else {
+                remainingConditions.add(condition);
+            }
+        }
+
+        // if there are no equality conditions
+        if (equalityConditions.isEmpty()) {
+            return table.getRows().stream()
+                       .filter(row -> evaluateConditions(conditions, row))
+                       .toList();
+        }
+
+        // Use first equality condition for initial index lookup
+        WhereCondition firstCondition = equalityConditions.get(0);
+        List<Map<String, String>> matchingRows = table.findRowsByColumnValue(
+            firstCondition.getColumn(), 
+            firstCondition.getValue()
+        );
+
+        // If there is a second equality condition, apply it
+        if (equalityConditions.size() == 2) {
+            WhereCondition secondCondition = equalityConditions.get(1);
+            matchingRows = matchingRows.stream()
+                .filter(row -> table.findRowsByColumnValue(secondCondition.getColumn(), secondCondition.getValue()).contains(row))
+                .toList();
+        }
+
+        // Apply any remaining non-equality conditions
+        return matchingRows.stream()
+                          .filter(row -> evaluateConditions(remainingConditions, row))
+                          .toList();
     }
 
 }
