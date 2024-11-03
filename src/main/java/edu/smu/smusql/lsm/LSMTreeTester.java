@@ -1,9 +1,10 @@
 package edu.smu.smusql.lsm;
 
+import edu.smu.smusql.RowEntry;
 import java.util.*;
 
 public class LSMTreeTester {
-    private static final int LIMIT = 20; 
+    private static final int LIMIT = 10; 
 
     public static void testLSM() {
         Random random = new Random();
@@ -15,11 +16,23 @@ public class LSMTreeTester {
             int age = 20 + (i % 41); // Ages between 20 and 60
             String city = getRandomCity(random);
 
-            List<String> values = new ArrayList<>();
-            values.add(String.valueOf(age));
-            values.add(city);
+            RowEntry rowEntry = new RowEntry();
+            rowEntry.addValue("age", String.valueOf(age));
+            rowEntry.addValue("city", city);
 
-            tree.add(name, values);
+            tree.add(name, rowEntry);
+            tree.printTree();
+        }
+        for (int i = 0; i < LIMIT; i++) {
+            String name = "User" + i;
+            int age = 20 + (i % 41); // Ages between 20 and 60
+            String city = getRandomCity(random);
+
+            RowEntry rowEntry = new RowEntry();
+            rowEntry.addValue("age", String.valueOf(age));
+            rowEntry.addValue("city", city);
+
+            tree.add(name, rowEntry);
             tree.printTree();
         }
     }

@@ -21,4 +21,16 @@ public class RowEntry {
     public void addValue(String column, String value) {
         values.put(column, value);
     }
+
+    public String toString() {
+        String str = "[";
+        for (String key: values.keySet()) {
+            str += key + ": " + values.get(key) + ", ";
+        }
+        if (str.length() > 1) {
+            return str.substring(0, str.length() - 2) + "]";
+        }
+
+        return "[]";
+    }
 }
