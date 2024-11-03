@@ -50,8 +50,7 @@ public class Engine {
             throw new InvalidCommandException("ERROR: Column count doesn't match value count");
         }
 
-        Map<String, String> row = createRowMap(columns, values);
-        table.addRow(row);
+        table.addRow(createRowMap(columns, values));
         return "Row inserted into " + tableName;
     }
 
@@ -60,11 +59,11 @@ public class Engine {
         String tableName = delete.getTablename();
         Table table = getTableOrThrow(tableName);
         List<WhereCondition> conditions = delete.getConditions();
-        List<Map<String, String>> rows = table.getRows();
-        List<Map<String, String>> remainingRows = new ArrayList<>();
+        List<RowEntry> rows = table.getRows();
+        List<RowEntry> remainingRows = new ArrayList<>();
         int deletedCount = 0;
 
-        for (Map<String, String> row : rows) {
+        for (RowEntry row : rows) {
             if (!evaluateConditions(conditions, row)) {
                 remainingRows.add(row);
             } else {
@@ -83,7 +82,7 @@ public class Engine {
         Table table = getTableOrThrow(tableName);
 
         List<String> columns = table.getColumns();
-        List<Map<String, String>> rows = processWhereConditions(table, select.getConditions());
+        List<RowEntry> rows = processWhereConditions(table, select.getConditions());
         return formatTableOutput(columns, rows);
     }
 
@@ -100,10 +99,10 @@ public class Engine {
             throw new InvalidCommandException("ERROR: Column not found");
         }
 
-        List<Map<String, String>> rows = processWhereConditions(table, update.getConditions());
+        List<RowEntry> rows = processWhereConditions(table, update.getConditions());
         int updatedCount = 0;
-        for (Map<String, String> row : rows) {
-            row.put(setColumn, newValue);
+        for (RowEntry row : rows) {
+            row.addValue(setColumn, newValue);
             updatedCount++;
         }
         return String.format("Table %s updated. %d rows affected.", tableName, updatedCount);
@@ -129,19 +128,19 @@ public class Engine {
      * HELPER METHODS
      */
 
-    private Map<String, String> createRowMap(List<String> columns, List<String> values) {
-        Map<String, String> row = new HashMap<>();
+    private RowEntry createRowMap(List<String> columns, List<String> values) {
+        RowEntry row = new RowEntry();
         for (int i = 0; i < columns.size(); i++) {
-            row.put(columns.get(i), values.get(i));
+            row.addValue(columns.get(i), values.get(i));
         }
         return row;
     }
 
-    private boolean evaluateConditions(List<WhereCondition> conditions, Map<String, String> row) {
+    private boolean evaluateConditions(List<WhereCondition> conditions, RowEntry row) {
         return conditions.stream().allMatch(condition -> condition.evaluate(row));
     }
 
-    private String formatTableOutput(List<String> columns, List<Map<String, String>> rows) {
+    private String formatTableOutput(List<String> columns, List<RowEntry> rows) {
         StringBuilder result = new StringBuilder();
         // Headers
         result.append(String.join("\t", columns))
@@ -149,13 +148,13 @@ public class Engine {
         
         // Rows
 
-        for (Map<String, String> row : rows) {
-            result.append(row.getOrDefault(columns.get(0), "NULL"));
+        for (RowEntry row : rows) {
+            result.append(row.getValue(columns.get(0)));
         }
-        for (Map<String, String> row : rows) {
+        for (RowEntry row : rows) {
             for (int i = 1; i < columns.size(); i++) {
                 result.append("\t");
-                result.append(row.getOrDefault(columns.get(i), "NULL"));
+                result.append(row.getValue(columns.get(i)));
             }
             result.append("\n");
         }
@@ -168,7 +167,7 @@ public class Engine {
                       .orElseThrow(() -> new InvalidCommandException("ERROR: Table not found"));
     }
 
-    private List<Map<String, String>> processWhereConditions(Table table, List<WhereCondition> conditions) {
+    private List<RowEntry> processWhereConditions(Table table, List<WhereCondition> conditions) {
         if (conditions.isEmpty()) {
             return table.getRows();
         }
@@ -193,7 +192,7 @@ public class Engine {
 
         // Use first equality condition for initial index lookup
         WhereCondition firstCondition = equalityConditions.get(0);
-        List<Map<String, String>> matchingRows = table.findRowsByColumnValue(
+        List<RowEntry> matchingRows = table.findRowsByColumnValue(
             firstCondition.getColumn(), 
             firstCondition.getValue()
         );

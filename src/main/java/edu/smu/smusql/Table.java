@@ -5,17 +5,16 @@ import java.util.*;
 public class Table {
     private String name;
     private List<String> columns;
-    private List<Map<String, String>> rows;
-    // v1: improves on sample by using indices to speed up findRowsByColumnValue
-    // maps column name to (map of value to list of row indices)
-    private Map<String, Map<String, List<Integer>>> indices;
+    private List<RowEntry> rows;
+    private final Map<String, Map<String, List<RowEntry>>> indices;  // column -> value -> rows
 
     public Table(String name, List<String> columns) {
         this.name = name;
         this.columns = columns;
         this.rows = new ArrayList<>();
         this.indices = new HashMap<>();
-        // Initialize index for each column
+        
+        // Initialize indices for all columns
         for (String column : columns) {
             indices.put(column, new HashMap<>());
         }
@@ -29,37 +28,31 @@ public class Table {
         return columns;
     }
 
-    public List<Map<String, String>> getRows() {
+    public List<RowEntry> getRows() {
         return rows;
     }
 
-    public void addRow(Map<String, String> row) {
+    public void addRow(RowEntry row) {
         rows.add(row);
-        int rowIndex = rows.size() - 1;
 
-        // for each column in the row, update the index
-        for (Map.Entry<String, String> entry : row.entrySet()) {
-            String column = entry.getKey();
-            Map<String, List<Integer>> columnIndex = indices.get(column);
-            columnIndex.computeIfAbsent(entry.getValue(), k -> new ArrayList<>()).add(rowIndex);
+        // Update indices
+        for (String column : columns) {
+            String value = row.getValue(column);
+            indices.get(column)
+                  .computeIfAbsent(value, k -> new ArrayList<>())
+                  .add(row);
         }
     }
 
-    
-
-    public List<Map<String, String>> findRowsByColumnValue(String columnName, String value) {
-        List<Map<String, String>> result = new ArrayList<>();
-        Map<String, List<Integer>> columnIndex = indices.get(columnName);
-
-        if (columnIndex != null && columnIndex.containsKey(value)) {
-            for (Integer rowIndex : columnIndex.get(value)) {
-                result.add(rows.get(rowIndex));
-            }
+    public List<RowEntry> findRowsByColumnValue(String columnName, String value) {
+        Map<String, List<RowEntry>> columnIndex = indices.get(columnName);
+        if (columnIndex == null) {
+            return Collections.emptyList();
         }
-        return result;
+        return columnIndex.getOrDefault(value, Collections.emptyList());
     }
 
-    public void setRows(List<Map<String, String>> newRows) {
+    public void setRows(List<RowEntry> newRows) {
         this.rows = newRows;
         // Rebuild indices after setting new rows
         rebuildIndices();
@@ -73,13 +66,12 @@ public class Table {
         
         // Rebuild indices for all rows
         for (int i = 0; i < rows.size(); i++) {
-            Map<String, String> row = rows.get(i);
-            for (Map.Entry<String, String> entry : row.entrySet()) {
-                String column = entry.getKey();
-                String value = entry.getValue();
+            RowEntry row = rows.get(i);
+            for (String column : columns) {
+                String value = row.getValue(column);
                 indices.get(column)
                       .computeIfAbsent(value, k -> new ArrayList<>())
-                      .add(i);
+                      .add(row);
             }
         }
     }
