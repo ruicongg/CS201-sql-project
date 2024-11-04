@@ -1,7 +1,10 @@
-package edu.smu.smusql;
+package edu.smu.smusql.interfaces;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import edu.smu.smusql.parser.WhereCondition;
 
 public class RowEntry {
     private final Map<String, String> values;
@@ -18,7 +21,11 @@ public class RowEntry {
         return values.getOrDefault(column, "NULL");
     }
 
-    public void addValue(String column, String value) {
+    public void addOrUpdateValue(String column, String value) {
         values.put(column, value);
+    }
+
+    public boolean evaluateAllConditions(List<WhereCondition> conditions) {
+        return conditions.stream().allMatch(condition -> condition.evaluate(this));
     }
 }

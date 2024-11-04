@@ -1,8 +1,9 @@
-package edu.smu.smusql;
+package edu.smu.smusql.parser;
 
 import java.util.List;
 import java.util.Map;
 
+import edu.smu.smusql.interfaces.RowEntry;
 public class WhereCondition {
     private String column;
     private String operator;

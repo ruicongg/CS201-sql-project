@@ -5,8 +5,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import edu.smu.smusql.WhereCondition;
-
 public class Parser {
 
     /*
