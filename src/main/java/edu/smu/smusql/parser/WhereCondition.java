@@ -1,8 +1,9 @@
-package edu.smu.smusql;
+package edu.smu.smusql.parser;
 
 import java.util.List;
 import java.util.Map;
 
+import edu.smu.smusql.interfaces.RowEntry;
 public class WhereCondition {
     private String column;
     private String operator;
@@ -20,8 +21,8 @@ public class WhereCondition {
     }
 
 
-    public boolean evaluate(Map<String, String> row) {
-        String columnValue = row.get(column);
+    public boolean evaluate(RowEntry row) {
+        String columnValue = row.getValue(column);
         if (columnValue == null) {
             return false;
         }
