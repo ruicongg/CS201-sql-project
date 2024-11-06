@@ -9,8 +9,9 @@ import org.junit.jupiter.api.*;
 // - Extra parameters in query
 // - Empty strings in where conditions
 
-public class EngineTest {
+public class    EngineTest {
     private Engine engine;
+    private static final long TEST_ITERATIONS = 100;
 
     @BeforeEach
     void setUp() {
@@ -246,4 +247,44 @@ public class EngineTest {
         assertEquals("Rows deleted from users. 0 rows affected.", result);
     }
 
+    @Test
+    void testSelectCache_HitSuccess() {
+        for (int i = 0; i < TEST_ITERATIONS; i++) {
+            engine.executeSQL("INSERT INTO users VALUES (" + i + ", John, 25, London)");
+        }
+
+        // First query - should miss cache
+        long start1 = System.currentTimeMillis();
+        for (int i = 0; i < TEST_ITERATIONS; i++) {
+            engine.executeSQL("SELECT * FROM users WHERE age = 25");
+        }
+        long firstRun = System.currentTimeMillis() - start1;
+
+        // Second query - should hit cache
+        long start2 = System.currentTimeMillis();
+        for (int i = 0; i < TEST_ITERATIONS; i++) {
+            engine.executeSQL("SELECT * FROM users WHERE age = 25");
+        }
+        long secondRun = System.currentTimeMillis() - start2;
+
+        assertTrue(firstRun > secondRun,
+                "First run should be slower than seocnd run");
+    }
+
+    // this test is to prevent stale data (cuz we hold onto old cache copy)
+    @Test
+    void testSelectCache_InvalidationOnUpdate() {
+        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
+
+        // Cache the select result
+        String result1 = engine.executeSQL("SELECT * FROM users WHERE age = 25");
+
+        // Update data
+        engine.executeSQL("UPDATE users SET age = 26 WHERE name = John");
+
+        // Should get new result after update
+        String result2 = engine.executeSQL("SELECT * FROM users WHERE age = 25");
+
+        assertNotEquals(result1, result2);
+    }
 } 
