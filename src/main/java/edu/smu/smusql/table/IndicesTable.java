@@ -3,13 +3,13 @@ package edu.smu.smusql.table;
 import java.util.*;
 
 import edu.smu.smusql.interfaces.RowEntry;
-public class Table {
+public class IndicesTable {
     private String name;
     private List<String> columns;
     private List<RowEntry> rows;
     private final Map<String, Map<String, List<RowEntry>>> indices;  // column -> value -> rows
 
-    public Table(String name, List<String> columns) {
+    public IndicesTable(String name, List<String> columns) {
         this.name = name;
         this.columns = columns;
         this.rows = new ArrayList<>();
