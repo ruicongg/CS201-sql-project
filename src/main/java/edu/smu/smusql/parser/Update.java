@@ -1,7 +1,6 @@
 package edu.smu.smusql.parser;
 
 import java.util.List;
-import edu.smu.smusql.WhereCondition;
 
 /*
  * Object used for greater clarity of

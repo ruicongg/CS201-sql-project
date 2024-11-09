@@ -1,7 +1,8 @@
-package edu.smu.smusql;
+package edu.smu.smusql.table;
 
 import java.util.*;
 
+import edu.smu.smusql.interfaces.RowEntry;
 public class Table {
     private String name;
     private List<String> columns;
