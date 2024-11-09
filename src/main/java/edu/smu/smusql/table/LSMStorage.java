@@ -26,7 +26,6 @@ public class LSMStorage implements StorageInterface {
         Map<String, LSMTree> columnsInTable = lsmTrees.get(insert.getTablename());
         for (int i = 0; i < columnNames.size(); i++) {
             String currentColumn = columnNames.get(i);
-            System.out.println(currentColumn);
             LSMTree lsmTreeForColumn = columnsInTable.get(currentColumn);
             lsmTreeForColumn.add(insert.getValues().get(i), rowEntry);
             lsmTreeForColumn.printTree();
@@ -96,7 +95,6 @@ public class LSMStorage implements StorageInterface {
 
         Map<String, LSMTree> columnsInTable = new HashMap<>();
         for (String column: create.getColumns()) {
-            System.out.println(column);
             columnsInTable.put(column, new LSMTree());
         }
         lsmTrees.put(create.getTablename(), columnsInTable);

@@ -104,6 +104,7 @@ public class LSMTree {
         // Get all entries in memTable with keys less than (or equal to) the given key
         NavigableMap<String, List<RowEntry>> subMap = memTable.headMap(key, inclusive); // Use the flag here
         for (List<RowEntry> entryList : subMap.values()) {
+            entryList.removeIf(RowEntry::isDeleted);
             result.addAll(entryList);
         }
     
@@ -126,6 +127,7 @@ public class LSMTree {
         // Get all entries in memTable with keys greater than (or equal to) the given key
         NavigableMap<String, List<RowEntry>> subMap = memTable.tailMap(key, inclusive); // Use the flag here
         for (List<RowEntry> entryList : subMap.values()) {
+            entryList.removeIf(RowEntry::isDeleted);
             result.addAll(entryList);
         }
     
@@ -134,6 +136,10 @@ public class LSMTree {
             TreeMap<String, List<RowEntry>> ssTable = ssTables.get(i);
             subMap = ssTable.tailMap(key, inclusive);
             for (List<RowEntry> entryList : subMap.values()) {
+                for (RowEntry rowEntry: entryList) {
+                    System.out.println(rowEntry);
+                    System.out.println(rowEntry.isDeleted());
+                }
                 entryList.removeIf(RowEntry::isDeleted);
                 result.addAll(entryList);
             }
