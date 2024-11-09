@@ -1,6 +1,7 @@
 package edu.smu.smusql;
 
 import java.util.*;
+import java.util.function.Function;
 
 import edu.smu.smusql.interfaces.RowEntry;
 import edu.smu.smusql.parser.*;
@@ -13,6 +14,9 @@ public class Engine {
     // change this storage interface for different implementations
     private final StorageInterface storageInterface = new IndicesStorage();
 
+    // modify filter size here
+    private final BloomFilter bloomFilter = new BloomFilter(80000, 2);
+    
     public String executeSQL(String query) {
         /*
          * Basic Input Validation
@@ -42,7 +46,6 @@ public class Engine {
     }
 
     public String insert(Insert insert) {
-        
 
         String tableName = insert.getTablename();
         if (!storageInterface.tableExists(tableName)) {
@@ -52,6 +55,12 @@ public class Engine {
         List<String> values = insert.getValues();
         if (values.size() != storageInterface.getColumnCount(tableName)) {
             throw new InvalidCommandException("ERROR: Column count doesn't match value count");
+        }
+        /*
+         * Add into bloom filter
+         */
+        for (String value: values) {
+            bloomFilter.add(value);
         }
 
         storageInterface.insert(insert);
@@ -65,6 +74,17 @@ public class Engine {
             throw new InvalidCommandException("ERROR: Table not found");
         }
 
+        List<WhereCondition> conditions = delete.getConditions();
+        if (conditions != null && !conditions.isEmpty()) {
+            boolean mightContainAnyCondition = conditions.stream()
+                .map(WhereCondition::getValue)
+                .anyMatch(bloomFilter::mightContain);
+
+            if (!mightContainAnyCondition) {
+                return "No records matched for deletion (filtered by Bloom filter).";
+            }
+        }
+
         int deletedCount = storageInterface.delete(delete);
 
         return "Rows deleted from " + tableName + ". " + deletedCount + " rows affected.";
@@ -73,10 +93,20 @@ public class Engine {
 
     public String select(Select select) {
     
-
         String tableName = select.getTablename();
         if (!storageInterface.tableExists(tableName)) {
             throw new InvalidCommandException("ERROR: Table not found");
+        }
+
+        List<WhereCondition> conditions = select.getConditions();
+        if (conditions != null && !conditions.isEmpty()) {
+            boolean mightContainAnyCondition = conditions.stream()
+                .map(WhereCondition::getValue)
+                .anyMatch(bloomFilter::mightContain);
+
+            if (!mightContainAnyCondition) {
+                return "No matching records found (filtered by Bloom filter).";
+            }
         }
 
         List<RowEntry> rows = storageInterface.select(select);
@@ -93,6 +123,17 @@ public class Engine {
 
         if (!storageInterface.getColumns(tableName).contains(update.getColumnname())) {
             throw new InvalidCommandException("ERROR: Column not found");
+        }
+
+        List<WhereCondition> conditions = update.getConditions();
+        if (conditions != null && !conditions.isEmpty()) {
+            boolean mightContainAnyCondition = conditions.stream()
+                .map(WhereCondition::getValue)
+                .anyMatch(bloomFilter::mightContain);
+
+            if (!mightContainAnyCondition) {
+                return "No records matched for update (filtered by Bloom filter).";
+            }
         }
 
         int updatedCount = storageInterface.update(update);
