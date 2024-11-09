@@ -1,6 +1,7 @@
 package edu.smu.smusql.lsm;
 
-import edu.smu.smusql.RowEntry;
+import edu.smu.smusql.interfaces.RowEntry;
+import edu.smu.smusql.parser.WhereCondition;
 import java.util.*;
 
 public class LSMTree {
@@ -81,6 +82,64 @@ public class LSMTree {
         // Clear existing SSTables and add the compacted version
         ssTables.clear();
         ssTables.add(newSSTable);
+    }
+
+
+    public List<RowEntry> getEntriesFromCondition(String operator, String value) {
+        printTree();
+        System.out.println(operator);
+        System.out.println(value);
+        return switch (operator.toUpperCase()) {
+            case ">" -> getEntriesWithKeyGreaterThan(value, false);
+            case "<" -> getEntriesWithKeyLessThan(value, false);
+            case ">=" -> getEntriesWithKeyGreaterThan(value, true);
+            case "<=" -> getEntriesWithKeyLessThan(value, true);
+            default -> null;
+        };
+    }
+
+    public List<RowEntry> getEntriesWithKeyLessThan(String key, boolean inclusive) {
+        List<RowEntry> result = new ArrayList<>();
+    
+        // Get all entries in memTable with keys less than (or equal to) the given key
+        NavigableMap<String, List<RowEntry>> subMap = memTable.headMap(key, inclusive); // Use the flag here
+        for (List<RowEntry> entryList : subMap.values()) {
+            result.addAll(entryList);
+        }
+    
+        // Repeat the process for all SSTables (most recent first)
+        for (int i = ssTables.size() - 1; i >= 0; i--) {
+            TreeMap<String, List<RowEntry>> ssTable = ssTables.get(i);
+            subMap = ssTable.headMap(key, inclusive);
+            for (List<RowEntry> entryList : subMap.values()) {
+                entryList.removeIf(RowEntry::isDeleted);
+                result.addAll(entryList);
+            }
+        }
+    
+        return result;
+    }
+
+    public List<RowEntry> getEntriesWithKeyGreaterThan(String key, boolean inclusive) {
+        List<RowEntry> result = new ArrayList<>();
+    
+        // Get all entries in memTable with keys greater than (or equal to) the given key
+        NavigableMap<String, List<RowEntry>> subMap = memTable.tailMap(key, inclusive); // Use the flag here
+        for (List<RowEntry> entryList : subMap.values()) {
+            result.addAll(entryList);
+        }
+    
+        // Repeat the process for all SSTables (most recent first)
+        for (int i = ssTables.size() - 1; i >= 0; i--) {
+            TreeMap<String, List<RowEntry>> ssTable = ssTables.get(i);
+            subMap = ssTable.tailMap(key, inclusive);
+            for (List<RowEntry> entryList : subMap.values()) {
+                entryList.removeIf(RowEntry::isDeleted);
+                result.addAll(entryList);
+            }
+        }
+    
+        return result;
     }
 
     // Print the the LSM Tree

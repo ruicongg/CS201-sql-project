@@ -64,6 +64,8 @@ public class IndicesStorage implements StorageInterface {
         int updatedCount = 0;
         for (RowEntry row : rows) {
             row.addOrUpdateValue(update.getColumnname(), update.getValue());
+            System.out.println(update.getColumnname());
+            System.out.println(row);
             updatedCount++;
         }
         return updatedCount;

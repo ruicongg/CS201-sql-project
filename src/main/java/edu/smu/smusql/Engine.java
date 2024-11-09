@@ -7,11 +7,12 @@ import edu.smu.smusql.parser.*;
 import edu.smu.smusql.table.Table;
 import edu.smu.smusql.interfaces.StorageInterface;
 import edu.smu.smusql.table.IndicesStorage;
+import edu.smu.smusql.table.LSMStorage;
 
 public class Engine {
 
     // change this storage interface for different implementations
-    private final StorageInterface storageInterface = new IndicesStorage();
+    private final StorageInterface storageInterface = new LSMStorage();
 
     public String executeSQL(String query) {
         /*

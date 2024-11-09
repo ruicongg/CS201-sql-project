@@ -1,6 +1,6 @@
 package edu.smu.smusql.lsm;
 
-import edu.smu.smusql.RowEntry;
+import edu.smu.smusql.interfaces.RowEntry;
 import java.util.*;
 
 public class LSMTreeTester {
@@ -17,8 +17,8 @@ public class LSMTreeTester {
             String city = getRandomCity(random);
 
             RowEntry rowEntry = new RowEntry();
-            rowEntry.addValue("age", String.valueOf(age));
-            rowEntry.addValue("city", city);
+            rowEntry.addOrUpdateValue("age", String.valueOf(age));
+            rowEntry.addOrUpdateValue("city", city);
 
             tree.add(name, rowEntry);
             tree.printTree();
@@ -29,8 +29,8 @@ public class LSMTreeTester {
             String city = getRandomCity(random);
 
             RowEntry rowEntry = new RowEntry();
-            rowEntry.addValue("age", String.valueOf(age));
-            rowEntry.addValue("city", city);
+            rowEntry.addOrUpdateValue("age", String.valueOf(age));
+            rowEntry.addOrUpdateValue("city", city);
 
             tree.add(name, rowEntry);
             tree.printTree();
