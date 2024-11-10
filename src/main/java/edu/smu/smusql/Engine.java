@@ -22,7 +22,7 @@ public class Engine {
      * @param size
      * @param hashCount
      */
-    private static final int FILTER_SIZE = 64000;
+    private static final int FILTER_SIZE = 128000;
     private static final int HASH_COUNT = 2;
     private final BloomFilter bloomFilter = new BloomFilter(FILTER_SIZE, HASH_COUNT);
 
