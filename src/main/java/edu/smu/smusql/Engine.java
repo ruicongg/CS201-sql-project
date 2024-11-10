@@ -3,6 +3,7 @@ package edu.smu.smusql;
 import java.util.*;
 import java.util.function.Function;
 
+import edu.smu.smusql.cache.ResultCache;
 import edu.smu.smusql.interfaces.RowEntry;
 import edu.smu.smusql.parser.*;
 import edu.smu.smusql.table.Table;
@@ -21,8 +22,17 @@ public class Engine {
      * @param size
      * @param hashCount
      */
-    private final BloomFilter bloomFilter = new BloomFilter(640000, 2);
-    
+    private static final int FILTER_SIZE = 64000;
+    private static final int HASH_COUNT = 2;
+    private final BloomFilter bloomFilter = new BloomFilter(FILTER_SIZE, HASH_COUNT);
+
+    /*
+     * CACHE IMPLEMENTATION
+     */
+    private static final int CACHE_CAPACITY = 10000;
+    private final ResultCache resultCache = new ResultCache(CACHE_CAPACITY);
+
+
     public String executeSQL(String query) {
         /*
          * Basic Input Validation
@@ -105,7 +115,19 @@ public class Engine {
             return "No matching records found (filtered by Bloom filter).";
         }
 
+        // create a key for this query
+        String cacheKey = generateCacheKey(select);
+
+        Optional<List<RowEntry>> cachedResult = resultCache.get(cacheKey);
+        if (cachedResult.isPresent()) {
+            return formatTableOutput(storageInterface.getColumns(tableName), cachedResult.get());
+        }
+
         List<RowEntry> rows = storageInterface.select(select);
+
+        // cache the result if not in our cache
+        resultCache.put(cacheKey, rows);
+
         return formatTableOutput(storageInterface.getColumns(tableName), rows);
     }
 
@@ -181,4 +203,28 @@ public class Engine {
     }
 
 
+    /**
+     * generates a unique cache key for a SELECT query.
+     * key includes table name + all conditions.
+     *
+     * @param select select query we generate a key for
+     * @return a string representing the unique cache key
+     */
+    private String generateCacheKey(Select select) {
+        StringBuilder key = new StringBuilder();
+        key.append(select.getTablename());
+
+        if (select.getConditions() != null) {
+            for (WhereCondition condition : select.getConditions()) {
+                key.append(":")
+                        .append(condition.getColumn())
+                        .append(condition.getOperator())
+                        .append(condition.getValue());
+                if (condition.getLogicalOperator() != null) {
+                    key.append(condition.getLogicalOperator());
+                }
+            }
+        }
+        return key.toString();
+    }
 }
