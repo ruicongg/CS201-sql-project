@@ -86,9 +86,6 @@ public class LSMTree {
 
 
     public List<RowEntry> getEntriesFromCondition(String operator, String value) {
-        printTree();
-        System.out.println(operator);
-        System.out.println(value);
         return switch (operator.toUpperCase()) {
             case ">" -> getEntriesWithKeyGreaterThan(value, false);
             case "<" -> getEntriesWithKeyLessThan(value, false);
@@ -137,8 +134,6 @@ public class LSMTree {
             subMap = ssTable.tailMap(key, inclusive);
             for (List<RowEntry> entryList : subMap.values()) {
                 for (RowEntry rowEntry: entryList) {
-                    System.out.println(rowEntry);
-                    System.out.println(rowEntry.isDeleted());
                 }
                 entryList.removeIf(RowEntry::isDeleted);
                 result.addAll(entryList);

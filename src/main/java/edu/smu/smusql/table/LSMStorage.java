@@ -28,7 +28,6 @@ public class LSMStorage implements StorageInterface {
             String currentColumn = columnNames.get(i);
             LSMTree lsmTreeForColumn = columnsInTable.get(currentColumn);
             lsmTreeForColumn.add(insert.getValues().get(i), rowEntry);
-            lsmTreeForColumn.printTree();
         }
     }
 
@@ -142,7 +141,6 @@ public class LSMStorage implements StorageInterface {
             String condition1Value = remainingConditions.get(0).getValue();
 
             matchingRows = condition1LSMTree.getEntriesFromCondition(condition1Operator, condition1Value);
-            System.out.println(matchingRows);
         }
 
         if (equalityConditions.size() >= 1) {

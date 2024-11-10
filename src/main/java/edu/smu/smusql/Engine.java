@@ -12,7 +12,7 @@ import edu.smu.smusql.table.LSMStorage;
 public class Engine {
 
     // change this storage interface for different implementations
-    private final StorageInterface storageInterface = new LSMStorage();
+    private final StorageInterface storageInterface = new IndicesStorage();
 
     public String executeSQL(String query) {
         /*
