@@ -2,6 +2,7 @@ package edu.smu.smusql;
 
 import java.util.*;
 
+import edu.smu.smusql.cache.ResultCache;
 import edu.smu.smusql.interfaces.RowEntry;
 import edu.smu.smusql.parser.*;
 import edu.smu.smusql.table.Table;
@@ -10,8 +11,10 @@ import edu.smu.smusql.table.IndicesStorage;
 
 public class Engine {
 
+    private static final int CACHE_CAPACITY = 10000;
     // change this storage interface for different implementations
     private final StorageInterface storageInterface = new IndicesStorage();
+    private final ResultCache resultCache = new ResultCache(CACHE_CAPACITY);
 
     public String executeSQL(String query) {
         /*
@@ -79,7 +82,19 @@ public class Engine {
             throw new InvalidCommandException("ERROR: Table not found");
         }
 
+        // create a key for this query
+        String cacheKey = generateCacheKey(select);
+
+        Optional<List<RowEntry>> cachedResult = resultCache.get(cacheKey);
+        if (cachedResult.isPresent()) {
+            return formatTableOutput(storageInterface.getColumns(tableName), cachedResult.get());
+        }
+
         List<RowEntry> rows = storageInterface.select(select);
+
+        // cache the result if not in our cache
+        resultCache.put(cacheKey, rows);
+
         return formatTableOutput(storageInterface.getColumns(tableName), rows);
     }
 
@@ -140,4 +155,28 @@ public class Engine {
     }
 
 
+    /**
+     * generates a unique cache key for a SELECT query.
+     * key includes table name + all conditions.
+     *
+     * @param select select query we generate a key for
+     * @return a string representing the unique cache key
+     */
+    private String generateCacheKey(Select select) {
+        StringBuilder key = new StringBuilder();
+        key.append(select.getTablename());
+
+        if (select.getConditions() != null) {
+            for (WhereCondition condition : select.getConditions()) {
+                key.append(":")
+                        .append(condition.getColumn())
+                        .append(condition.getOperator())
+                        .append(condition.getValue());
+                if (condition.getLogicalOperator() != null) {
+                    key.append(condition.getLogicalOperator());
+                }
+            }
+        }
+        return key.toString();
+    }
 }
