@@ -9,6 +9,20 @@ public class BloomFilter {
     private int[] hashSeeds;
     private int hashCount;
 
+    /*
+     * Allow us to disable the bloom filter
+     */
+    public BloomFilter() {
+        size = 0;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    /*
+     * Using the bloom filter
+     */
     public BloomFilter(int size, int hashCount) {
         this.size = size;
         this.hashCount = hashCount;

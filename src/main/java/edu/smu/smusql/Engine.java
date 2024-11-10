@@ -11,11 +11,17 @@ import edu.smu.smusql.table.IndicesStorage;
 
 public class Engine {
 
-    // change this storage interface for different implementations
+    /**
+     * CHANGE THIS FOR STORAGE IMPLEMENTATIONS
+     */
     private final StorageInterface storageInterface = new IndicesStorage();
 
-    // modify filter size here
-    private final BloomFilter bloomFilter = new BloomFilter(80000, 2);
+    /**
+     * REMOVE PARAMETERS TO DISABLE BLOOM FILTER
+     * @param size
+     * @param hashCount
+     */
+    private final BloomFilter bloomFilter = new BloomFilter(640000, 2);
     
     public String executeSQL(String query) {
         /*
@@ -59,9 +65,12 @@ public class Engine {
         /*
          * Add into bloom filter
          */
-        for (String value: values) {
-            bloomFilter.add(value);
+        if (bloomFilter.getSize() != 0) {
+            for (String value: values) {
+                bloomFilter.add(value);
+            }
         }
+        
 
         storageInterface.insert(insert);
         return "Row inserted into " + tableName;
@@ -75,18 +84,11 @@ public class Engine {
         }
 
         List<WhereCondition> conditions = delete.getConditions();
-        if (conditions != null && !conditions.isEmpty()) {
-            boolean mightContainAnyCondition = conditions.stream()
-                .map(WhereCondition::getValue)
-                .anyMatch(bloomFilter::mightContain);
-
-            if (!mightContainAnyCondition) {
-                return "No records matched for deletion (filtered by Bloom filter).";
-            }
+        if (bloomFilter.getSize() != 0 && conditionsBloomFilter(conditions)) {
+            return "No records matched for deletion (filtered by Bloom filter).";
         }
 
         int deletedCount = storageInterface.delete(delete);
-
         return "Rows deleted from " + tableName + ". " + deletedCount + " rows affected.";
         
     }
@@ -99,14 +101,8 @@ public class Engine {
         }
 
         List<WhereCondition> conditions = select.getConditions();
-        if (conditions != null && !conditions.isEmpty()) {
-            boolean mightContainAnyCondition = conditions.stream()
-                .map(WhereCondition::getValue)
-                .anyMatch(bloomFilter::mightContain);
-
-            if (!mightContainAnyCondition) {
-                return "No matching records found (filtered by Bloom filter).";
-            }
+        if (bloomFilter.getSize() != 0 && conditionsBloomFilter(conditions)) {
+            return "No matching records found (filtered by Bloom filter).";
         }
 
         List<RowEntry> rows = storageInterface.select(select);
@@ -126,14 +122,8 @@ public class Engine {
         }
 
         List<WhereCondition> conditions = update.getConditions();
-        if (conditions != null && !conditions.isEmpty()) {
-            boolean mightContainAnyCondition = conditions.stream()
-                .map(WhereCondition::getValue)
-                .anyMatch(bloomFilter::mightContain);
-
-            if (!mightContainAnyCondition) {
-                return "No records matched for update (filtered by Bloom filter).";
-            }
+        if (bloomFilter.getSize() != 0 && conditionsBloomFilter(conditions)) {
+            return "No records matched for update (filtered by Bloom filter).";
         }
 
         int updatedCount = storageInterface.update(update);
@@ -157,6 +147,16 @@ public class Engine {
     /*
      * HELPER METHODS
      */
+    private boolean conditionsBloomFilter(List <WhereCondition> conditions) {
+        if (conditions != null && !conditions.isEmpty()) {
+            boolean mightContainAnyCondition = conditions.stream()
+                .map(WhereCondition::getValue)
+                .anyMatch(bloomFilter::mightContain);
+
+            return (!mightContainAnyCondition); // returns true if no condition found
+        }
+        return false; // returns false by default
+    }
 
     private String formatTableOutput(List<String> columns, List<RowEntry> rows) {
         StringBuilder result = new StringBuilder();
