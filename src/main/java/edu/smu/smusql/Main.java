@@ -23,33 +23,38 @@ public class Main {
         while (true) {
             System.out.println("1. Enter 'exit' to exit");
             System.out.println("2. Enter 'evaluate' to evaluate the engine");
-            System.out.println("3. Enter 'lsm' to test the lsm implementation");
-            System.out.print("smusql> ");
+            System.out.print("3. Enter 'lsm' to test the lsm implementation \nsmusql> ");
             String query = scanner.nextLine();
             if (query.equalsIgnoreCase("exit")) {
                 break;
             } else if (query.equalsIgnoreCase("evaluate")) {
                 System.out.println("How would you like to evaluate the engine?");
                 System.out.println("1. Enter 'random' for random percentages of queries");
-                System.out.println("2. Enter 'interactive' to select each percentages of queries");
-                System.out.print("smusql> ");
+                System.out.print("2. Enter 'interactive' to select each percentages of queries \nsmusql> ");
 
                 EvaluationMode mode = EvaluationMode.valueOf(scanner.nextLine().toUpperCase());
                 Evaluator evaluator = buildEvaluator(scanner, mode);
 
-                System.out.println("How many rows to prepopulate into USERS table ");
-                long userRows = Long.parseLong(scanner.nextLine());
-                System.out.println("How many rows to prepopulate into PRODUCTS table ");
-                long productRows = Long.parseLong(scanner.nextLine());
-                System.out.println("How many rows to prepopulate into ORDERS table ");
-                long orderRows = Long.parseLong(scanner.nextLine());
+                assert evaluator != null;
+
+                System.out.print("How many rows to prepopulate into USERS table? \nsmusql> ");
+                int userRows = Integer.parseInt(scanner.nextLine());
+                System.out.print("How many rows to prepopulate into PRODUCTS table? \nsmusql> ");
+                int productRows = Integer.parseInt(scanner.nextLine());
+                System.out.print("How many rows to prepopulate into ORDERS table? \nsmusql> ");
+                int orderRows = Integer.parseInt(scanner.nextLine());
 
                 EvaluationSetup evaluationSetup = new EvaluationSetup(dbEngine);
-                evaluationSetup.setup(userRows, productRows, orderRows);
+                dbEngine = evaluationSetup.setup(userRows, productRows, orderRows);
 
+                System.out.print("How many queries would you like to execute? \nsmusql> ");
+                long numQueries = Long.parseLong(scanner.nextLine());
+                System.out.println("What % of queries do you want to be complex? ");
+                System.out.print("1. 100, 2. 50, 3. 0 \nsmusql> ");
+                int complexPercentage = Integer.parseInt(scanner.nextLine());
 
                 long startTime = System.nanoTime();
-//                evaluator.evaluate(numberOfQueries);
+                evaluator.evaluate(dbEngine, complexPercentage, numQueries);
                 long stopTime = System.nanoTime();
                 long elapsedTime = stopTime - startTime;
                 double elapsedTimeInSecond = (double) elapsedTime / 1_000_000_000;
@@ -70,50 +75,50 @@ public class Main {
      *  Below is the code for auto-evaluating your work.
      *  DO NOT CHANGE ANYTHING BELOW THIS LINE!
      */
-    public static void autoEvaluate() {
-
-        int numberOfQueries = 20000;
-
-
-        // Random data generator
-        Random random = new Random();
-
-        // Prepopulate the tables in preparation for evaluation
-        prepopulateTables(random);
-
-        // Loop to simulate millions of queries
-        for (int i = 0; i < numberOfQueries; i++) {
-            int queryType = random.nextInt(6);  // Randomly choose the type of query to execute
-
-            switch (queryType) {
-                case 0:  // INSERT query
-                    insertRandomData(random);
-                    break;
-                case 1:  // SELECT query (simple)
-                    selectRandomData(random);
-                    break;
-                case 2:  // UPDATE query
-                    updateRandomData(random);
-                    break;
-                case 3:  // DELETE query
-                    deleteRandomData(random);
-                    break;
-                case 4:  // Complex SELECT query with WHERE, AND, OR, >, <, LIKE
-                    complexSelectQuery(random);
-                    break;
-                case 5:  // Complex UPDATE query with WHERE
-                    complexUpdateQuery(random);
-                    break;
-            }
-
-            // Print progress every 10,000 queries
-            if (i % 10000 == 0){
-                System.out.println("Processed " + i + " queries...");
-            }
-        }
-
-        System.out.println("Finished processing " + numberOfQueries + " queries.");
-    }
+//    public static void autoEvaluate() {
+//
+//        int numberOfQueries = 20000;
+//
+//
+//        // Random data generator
+//        Random random = new Random();
+//
+//        // Prepopulate the tables in preparation for evaluation
+//        prepopulateTables(random);
+//
+//        // Loop to simulate millions of queries
+//        for (int i = 0; i < numberOfQueries; i++) {
+//            int queryType = random.nextInt(6);  // Randomly choose the type of query to execute
+//
+//            switch (queryType) {
+//                case 0:  // INSERT query
+//                    insertRandomData(random);
+//                    break;
+//                case 1:  // SELECT query (simple)
+//                    selectRandomData(random);
+//                    break;
+//                case 2:  // UPDATE query
+//                    updateRandomData(random);
+//                    break;
+//                case 3:  // DELETE query
+//                    deleteRandomData(random);
+//                    break;
+//                case 4:  // Complex SELECT query with WHERE, AND, OR, >, <, LIKE
+//                    complexSelectQuery(random);
+//                    break;
+//                case 5:  // Complex UPDATE query with WHERE
+//                    complexUpdateQuery(random);
+//                    break;
+//            }
+//
+//            // Print progress every 10,000 queries
+//            if (i % 10000 == 0){
+//                System.out.println("Processed " + i + " queries...");
+//            }
+//        }
+//
+//        System.out.println("Finished processing " + numberOfQueries + " queries.");
+//    }
 
 
     /**

@@ -13,28 +13,29 @@ public class EvaluationSetup {
         this.dbEngine = dbEngine;
     }
 
-    public void setup(long userRows, long productRows, long orderRows) {
+    public Engine setup(int userRows, int productRows, int orderRows) {
         System.out.println("Setting up the evaluation environment...");
         setupUserTable(userRows);
         setupOrderTable(orderRows);
         setupProductTable(productRows);
+        return dbEngine;
     }
 
-    private void setupUserTable(long userRows) {
+    private void setupUserTable(int userRows) {
         // Create table
-        System.out.println("Prepopulating users");
+        System.out.println("Prepopulating users...");
         dbEngine.executeSQL("CREATE TABLE users (id, name, age, city)");
         for (int i = 0; i < userRows; i++) {
             String name = "User" + i;
             int age = 20 + (i % 41); // Prices between $10 and $1000
             String city = AttributeRandomizer.getRandomCity(random);
-            String insertCommand = String.format("INSERT INTO users VALUES (%d, '%s', %.2f, '%s')", i, name, age, city);
+            String insertCommand = String.format("INSERT INTO users VALUES (%d, '%s', %d, '%s')", i, name, age, city);
             dbEngine.executeSQL(insertCommand);
         }
     }
 
-    private void setupProductTable(long productRows) {
-        System.out.println("Prepopulating products");
+    private void setupProductTable(int productRows) {
+        System.out.println("Prepopulating products...");
         dbEngine.executeSQL("CREATE TABLE products (id, name, price, category)");
 
         for (int i = 0; i < productRows; i++) {
@@ -46,8 +47,8 @@ public class EvaluationSetup {
         }
     }
 
-    private void setupOrderTable(long orderRows) {
-        System.out.println("Prepopulating orders");
+    private void setupOrderTable(int orderRows) {
+        System.out.println("Prepopulating orders...");
         dbEngine.executeSQL("CREATE TABLE orders (id, user_id, product_id, quantity)");
 
         // Insert initial orders
