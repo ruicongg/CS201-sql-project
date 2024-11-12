@@ -1,24 +1,62 @@
 package edu.smu.smusql;
 
+import java.util.BitSet;
+import java.util.Random;
+
 public class BloomFilter {
-    private final boolean[] bitArray;
-    private final int size;
+    private BitSet bitSet;
+    private int size;
+    private int[] hashSeeds;
+    private int hashCount;
 
-    public BloomFilter(int size) {
+    /*
+     * Allow us to disable the bloom filter
+     */
+    public BloomFilter() {
+        size = 0;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    /*
+     * Using the bloom filter
+     */
+    public BloomFilter(int size, int hashCount) {
         this.size = size;
-        this.bitArray = new boolean[size];
+        this.hashCount = hashCount;
+        this.bitSet = new BitSet(size);
+        this.hashSeeds = new int[hashCount];
+        Random random = new Random();
+
+        for (int i = 0; i < hashCount; i++) {
+            hashSeeds[i] = random.nextInt();
+        }
     }
 
-    public void add(String key) {
-        int hash1 = key.hashCode() % size;
-        int hash2 = (key.hashCode() / 2) % size;
-        bitArray[Math.abs(hash1)] = true;
-        bitArray[Math.abs(hash2)] = true;
+    private int hash(String data, int seed) {
+        int result = 0;
+        for (int i = 0; i < data.length(); i++) {
+            result = result * seed + data.charAt(i);
+        }
+        return (result & 0x7fffffff) % size;
     }
 
-    public boolean mightContain(String key) {
-        int hash1 = key.hashCode() % size;
-        int hash2 = (key.hashCode() / 2) % size;
-        return bitArray[Math.abs(hash1)] && bitArray[Math.abs(hash2)];
+    public void add(String data) {
+        for (int seed : hashSeeds) {
+            int hash = hash(data, seed);
+            bitSet.set(hash);
+        }
+    }
+
+    public boolean mightContain(String data) {
+        for (int seed : hashSeeds) {
+            int hash = hash(data, seed);
+            if (!bitSet.get(hash)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

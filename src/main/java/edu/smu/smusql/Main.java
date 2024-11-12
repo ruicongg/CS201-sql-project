@@ -83,7 +83,7 @@ public class Main {
                     break;
             }
 
-            // Print progress every 100,000 queries
+            // Print progress every 10,000 queries
             if (i % 10000 == 0){
                 System.out.println("Processed " + i + " queries...");
             }
