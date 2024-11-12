@@ -15,7 +15,7 @@ public class Engine {
     /**
      * CHANGE THIS FOR STORAGE IMPLEMENTATIONS
      */
-    private final StorageInterface storageInterface = new IndicesStorage();
+    private final StorageInterface storageInterface = new LSMFQ();
 
     /**
      * REMOVE PARAMETERS TO DISABLE BLOOM FILTER

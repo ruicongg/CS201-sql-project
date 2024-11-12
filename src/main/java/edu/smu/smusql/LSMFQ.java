@@ -8,15 +8,17 @@ import edu.smu.smusql.parser.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class LSMFQ implements StorageInterface {
 
     private static final int MAX_MEMTABLE_SIZE = 1000;
-    
+
     private final ConcurrentMap<String, List<RowEntry>> memTable = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, List<RowEntry>> ssTable = new ConcurrentHashMap<>();
+    private final Map<String, List<String>> tableColumns = new ConcurrentHashMap<>();
 
     @Override
     public boolean tableExists(String tableName) {
@@ -30,13 +32,15 @@ public class LSMFQ implements StorageInterface {
             throw new IllegalStateException("Table " + tableName + " already exists");
         }
         memTable.put(tableName, new ArrayList<>());
+        // Store the columns for this table
+        tableColumns.put(tableName, create.getColumns());
     }
 
     @Override
     public void insert(Insert insert) {
         String tableName = insert.getTablename();
         List<RowEntry> memTableRows = memTable.get(tableName);
-        
+
         RowEntry newRow = new RowEntry();
         List<String> values = insert.getValues();
         List<String> columns = getColumns(tableName);
@@ -46,7 +50,7 @@ public class LSMFQ implements StorageInterface {
         }
         memTableRows.add(newRow);
 
-        // if memtable full move into sstable
+        // If memtable is full, move data into ssTable
         if (memTableRows.size() >= MAX_MEMTABLE_SIZE) {
             compact(tableName);
         }
@@ -57,7 +61,7 @@ public class LSMFQ implements StorageInterface {
         String tableName = delete.getTablename();
         List<RowEntry> memTableRows = memTable.get(tableName);
         List<WhereCondition> conditions = delete.getConditions();
-        
+
         int[] deletedCount = {0};  // Single-element array as a mutable counter
         memTableRows.removeIf(row -> {
             boolean toDelete = row.evaluateAllConditions(conditions);
@@ -76,7 +80,7 @@ public class LSMFQ implements StorageInterface {
 
         List<RowEntry> result = new ArrayList<>();
 
-        // Scan memTable n ssTable
+        // Scan memTable and ssTable
         if (memTable.containsKey(tableName)) {
             for (RowEntry row : memTable.get(tableName)) {
                 if (row.evaluateAllConditions(conditions)) {
@@ -100,7 +104,7 @@ public class LSMFQ implements StorageInterface {
         String tableName = update.getTablename();
         List<RowEntry> memTableRows = memTable.get(tableName);
         List<WhereCondition> conditions = update.getConditions();
-        
+
         int updatedCount = 0;
         for (RowEntry row : memTableRows) {
             if (row.evaluateAllConditions(conditions)) {
@@ -113,12 +117,8 @@ public class LSMFQ implements StorageInterface {
 
     @Override
     public List<String> getColumns(String tableName) {
-        // Assume columns r predefined for each table
-        return switch (tableName) {
-            case "students" -> List.of("id", "name", "age", "gpa");
-            //case "xxx" -> List.of("id", "name");
-            default -> Collections.emptyList();
-        };
+        // Retrieve columns dynamically from tableColumns
+        return tableColumns.getOrDefault(tableName, Collections.emptyList());
     }
 
     @Override
@@ -134,7 +134,7 @@ public class LSMFQ implements StorageInterface {
         ssTableRows.addAll(memTableRows);
         memTableRows.clear();
 
-        // Sort ssTable 
+        // Sort ssTable
         ssTableRows.sort((r1, r2) -> {
             String id1 = r1.getValue("id");
             String id2 = r2.getValue("id");
