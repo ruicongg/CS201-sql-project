@@ -20,6 +20,13 @@ public class Evaluator {
     private final double updatePercentage;
     private final double selectPercentage;
 
+    private double simpleInsertSpeed;
+    private double simpleUpdateSpeed;
+    private double simpleDeleteSpeed;
+    private double simpleSelectSpeed;
+    private double complexSelectSpeed;
+    private double complexUpdateSpeed;
+
     /**
      * Private constructor to enforce object creation through the Builder.
      *
@@ -171,6 +178,7 @@ public class Evaluator {
     // Helper method to insert random data into users, products, or orders table
     private void insertRandomData(Random random, long insertQueries) {
         System.out.println("Executing " + insertQueries + " simple insert queries...");
+        long startTime = System.nanoTime();
         for (long i = 0; i < insertQueries; i++) {
 
             if (i % 1000 == 0) {
@@ -205,11 +213,15 @@ public class Evaluator {
                     break;
             }
         }
+        long endTime = System.nanoTime();
+        long elapsedTime = endTime - startTime;
+        this.simpleInsertSpeed = (double) (((double)elapsedTime / 1_000_000)/insertQueries);
     }
 
     // Helper method to randomly select data from tables
     private void selectRandomData(Random random,  long selectQueries) {
         System.out.println("Executing " + selectQueries + " simple select queries...");
+        long startTime = System.nanoTime();
         for (long i = 0; i < selectQueries; i++) {
 
             if (i % 1000 == 0) {
@@ -225,11 +237,15 @@ public class Evaluator {
             };
             dbEngine.executeSQL(selectQuery);
         }
+        long endTime = System.nanoTime();
+        long elapsedTime = endTime - startTime;
+        this.simpleSelectSpeed = (double) (((double)elapsedTime / 1_000_000)/selectQueries);
     }
 
     // Helper method to update random data in the tables
     private void updateRandomData(Random random,  long updateQueries) {
         System.out.println("Executing " + updateQueries + " simple update queries...");
+        long startTime = System.nanoTime();
         for (long i = 0; i < updateQueries; i++) {
 
             if (i % 1000 == 0) {
@@ -258,11 +274,15 @@ public class Evaluator {
                     break;
             }
         }
+        long endTime = System.nanoTime();
+        long elapsedTime = endTime - startTime;
+        this.simpleUpdateSpeed = (double) (((double)elapsedTime / 1_000_000)/updateQueries);
     }
 
     // Helper method to delete random data from tables
     private void deleteRandomData(Random random, long deleteQueries) {
         System.out.println("Executing " + deleteQueries + " simple delete queries...");
+        long startTime = System.nanoTime();
         for (long i = 0; i < deleteQueries; i++) {
 
             if (i % 1000 == 0) {
@@ -288,11 +308,15 @@ public class Evaluator {
                     break;
             }
         }
+        long endTime = System.nanoTime();
+        long elapsedTime = endTime - startTime;
+        this.simpleDeleteSpeed = (double) (((double)elapsedTime / 1_000_000)/deleteQueries);
     }
 
     // Helper method to execute a complex UPDATE query with WHERE
     private void complexUpdateQuery(Random random, long complexUpdateQueries) {
         System.out.println("Executing " + complexUpdateQueries + " complex update queries...");
+        long startTime = System.nanoTime();
         for (long i = 0; i < complexUpdateQueries; i++) {
 
             if (i % 1000 == 0) {
@@ -315,11 +339,15 @@ public class Evaluator {
                     break;
             }
         }
+        long endTime = System.nanoTime();
+        long elapsedTime = endTime - startTime;
+        this.complexUpdateSpeed = (double) (((double)elapsedTime / 1_000_000)/complexUpdateQueries);
     }
 
     // Helper method to execute a complex SELECT query with WHERE, AND, OR, >, <, LIKE
     private void complexSelectQuery(Random random, long complexSelectQueries) {
         System.out.println("Executing " + complexSelectQueries + " complex select queries...");
+        long startTime = System.nanoTime();
         for (long i = 0; i < complexSelectQueries; i++) {
 
             if (i % 1000 == 0) {
@@ -350,10 +378,19 @@ public class Evaluator {
             }
             dbEngine.executeSQL(complexSelectQuery);
         }
+        long endTime = System.nanoTime();
+        long elapsedTime = endTime - startTime;
+        this.complexSelectSpeed = (double) (((double)elapsedTime / 1_000_000)/complexSelectQueries);
     }
 
 
     private void printMetrics() {
+        System.out.println("Simple Select Speed: " + simpleSelectSpeed + " milliseconds per query.");
+        System.out.println("Simple Insert Speed: " + simpleInsertSpeed + " milliseconds per query.");
+        System.out.println("Simple Update Speed: " + simpleUpdateSpeed + " milliseconds per query.");
+        System.out.println("Simple Delete Speed: " + simpleDeleteSpeed + " milliseconds per query.");
+        System.out.println("Complex Select Speed: " + complexSelectSpeed + " milliseconds per query.");
+        System.out.println("Complex Update Speed: " + complexUpdateSpeed + " milliseconds per query.");
         System.out.println("Memory usage: " + metrics.getUsedMemory() + " MB.");
     }
 }
