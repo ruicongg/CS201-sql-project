@@ -28,15 +28,7 @@ public class Main {
             if (query.equalsIgnoreCase("exit")) {
                 break;
             } else if (query.equalsIgnoreCase("evaluate")) {
-                System.out.println("How would you like to evaluate the engine?");
-                System.out.println("1. Enter 'random' for random percentages of queries");
-                System.out.print("2. Enter 'interactive' to select each percentages of queries \nsmusql> ");
-
-                EvaluationMode mode = EvaluationMode.valueOf(scanner.nextLine().toUpperCase());
-                Evaluator evaluator = buildEvaluator(scanner, mode);
-
-                assert evaluator != null;
-
+                System.out.println("Please configure the initial database environment.");
                 System.out.print("How many rows to prepopulate into USERS table? \nsmusql> ");
                 int userRows = Integer.parseInt(scanner.nextLine());
                 System.out.print("How many rows to prepopulate into PRODUCTS table? \nsmusql> ");
@@ -47,14 +39,25 @@ public class Main {
                 EvaluationSetup evaluationSetup = new EvaluationSetup(dbEngine);
                 dbEngine = evaluationSetup.setup(userRows, productRows, orderRows);
 
+                System.out.println("How would you like to evaluate the engine?");
+                System.out.println("1. Enter 'random' for random percentages of queries");
+                System.out.print("2. Enter 'interactive' to select each percentages of queries \nsmusql> ");
+
+                EvaluationMode mode = EvaluationMode.valueOf(scanner.nextLine().toUpperCase());
+                Evaluator evaluator = buildEvaluator(scanner, mode, dbEngine);
+
+                assert evaluator != null;
+
+                System.out.println("Evaluator configured as " + evaluator);
+
                 System.out.print("How many queries would you like to execute? \nsmusql> ");
                 long numQueries = Long.parseLong(scanner.nextLine());
                 System.out.println("What % of queries do you want to be complex? ");
                 System.out.print("1. 100, 2. 50, 3. 0 \nsmusql> ");
-                int complexPercentage = Integer.parseInt(scanner.nextLine());
+                double complexPercentage = Double.parseDouble(scanner.nextLine()) / 100.0;
 
                 long startTime = System.nanoTime();
-                evaluator.evaluate(dbEngine, complexPercentage, numQueries);
+                evaluator.evaluate(complexPercentage, numQueries);
                 long stopTime = System.nanoTime();
                 long elapsedTime = stopTime - startTime;
                 double elapsedTimeInSecond = (double) elapsedTime / 1_000_000_000;
@@ -64,70 +67,21 @@ public class Main {
                 LSMTreeTester.testLSM();
                 break;
             }
-
             System.out.println(dbEngine.executeSQL(query));
         }
         scanner.close();
     }
 
 
-    /*
-     *  Below is the code for auto-evaluating your work.
-     *  DO NOT CHANGE ANYTHING BELOW THIS LINE!
-     */
-//    public static void autoEvaluate() {
-//
-//        int numberOfQueries = 20000;
-//
-//
-//        // Random data generator
-//        Random random = new Random();
-//
-//        // Prepopulate the tables in preparation for evaluation
-//        prepopulateTables(random);
-//
-//        // Loop to simulate millions of queries
-//        for (int i = 0; i < numberOfQueries; i++) {
-//            int queryType = random.nextInt(6);  // Randomly choose the type of query to execute
-//
-//            switch (queryType) {
-//                case 0:  // INSERT query
-//                    insertRandomData(random);
-//                    break;
-//                case 1:  // SELECT query (simple)
-//                    selectRandomData(random);
-//                    break;
-//                case 2:  // UPDATE query
-//                    updateRandomData(random);
-//                    break;
-//                case 3:  // DELETE query
-//                    deleteRandomData(random);
-//                    break;
-//                case 4:  // Complex SELECT query with WHERE, AND, OR, >, <, LIKE
-//                    complexSelectQuery(random);
-//                    break;
-//                case 5:  // Complex UPDATE query with WHERE
-//                    complexUpdateQuery(random);
-//                    break;
-//            }
-//
-//            // Print progress every 10,000 queries
-//            if (i % 10000 == 0){
-//                System.out.println("Processed " + i + " queries...");
-//            }
-//        }
-//
-//        System.out.println("Finished processing " + numberOfQueries + " queries.");
-//    }
-
 
     /**
      * Interactively builds an Evaluator instance by collecting percentages for each query type.
      *
-     * @param scanner Scanner instance for reading user input.
+     * @param scanner  Scanner instance for reading user input.
+     * @param dbEngine
      * @return Configured Evaluator instance or null if configuration failed.
      */
-    private static Evaluator buildEvaluator(Scanner scanner, EvaluationMode mode) {
+    private static Evaluator buildEvaluator(Scanner scanner, EvaluationMode mode, Engine dbEngine) {
         double[] percentages = new double[SupportedQueries.values().length];
 
         if (mode.equals(EvaluationMode.RANDOM)) {
@@ -146,6 +100,7 @@ public class Main {
                     .deletePercentage(percentages[1])
                     .updatePercentage(percentages[2])
                     .selectPercentage(percentages[3])
+                    .dbEngine(dbEngine)
                     .build();
         } catch (IllegalArgumentException e) {
             return null;
