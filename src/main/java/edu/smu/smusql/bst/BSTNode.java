@@ -1,13 +1,14 @@
 package edu.smu.smusql.bst;
 
+import edu.smu.smusql.interfaces.RowEntry;
+
 import java.util.Map;
 
-public class BSTNode {
-    Map<String, String> row;  // Stores the row data as a map
+public class BSTNode extends RowEntry {
     BSTNode left, right;
 
     public BSTNode(Map<String, String> row) {
-        this.row = row;
+        super(row);
         this.left = this.right = null;
     }
 }
