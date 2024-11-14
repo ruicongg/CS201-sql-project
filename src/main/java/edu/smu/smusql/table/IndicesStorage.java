@@ -10,11 +10,11 @@ import edu.smu.smusql.parser.*;
 // v2: processes 2 equality where conditions to improve performance
 
 public class IndicesStorage implements StorageInterface {
-    private final Map<String, IndicesTable> tables = new HashMap<>();
+    private final Map<String, Table> tables = new HashMap<>();
 
     @Override
     public void insert(Insert insert) {
-        IndicesTable table = tables.get(insert.getTablename());
+        Table table = tables.get(insert.getTablename());
         table.addRow(createRowMap(table.getColumns(), insert.getValues()));
     }
 
@@ -35,7 +35,7 @@ public class IndicesStorage implements StorageInterface {
 
     @Override
     public int delete(Delete delete) {
-        IndicesTable table = tables.get(delete.getTablename());
+        Table table = tables.get(delete.getTablename());
         List<RowEntry> rows = table.getRows();
         List<RowEntry> remainingRows = new ArrayList<>();
         int deletedCount = 0;
@@ -71,7 +71,7 @@ public class IndicesStorage implements StorageInterface {
 
     @Override
     public void create(Create create) {
-        IndicesTable newTable = new IndicesTable(create.getTablename(), create.getColumns());
+        Table newTable = new Table(create.getTablename(), create.getColumns());
         tables.put(create.getTablename(), newTable);
     }
 
@@ -87,7 +87,7 @@ public class IndicesStorage implements StorageInterface {
         return row;
     }
 
-    private List<RowEntry> processWhereConditions(IndicesTable table, List<WhereCondition> conditions) {
+    private List<RowEntry> processWhereConditions(Table table, List<WhereCondition> conditions) {
         if (conditions.isEmpty()) {
             return table.getRows();
         }

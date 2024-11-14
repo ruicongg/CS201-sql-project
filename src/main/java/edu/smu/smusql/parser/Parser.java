@@ -31,7 +31,7 @@ public class Parser {
             WhereCondition condition = new WhereCondition(tokens[idx++], tokens[idx++], tokens[idx++]);
             if (idx < tokens.length) { // check whether this is last condition
                 // if there is another token, assume it is a logical operator
-                condition.setLogicalOperator(tokens[idx++]);
+                condition.setLogicalOperator(tokens[idx++].toUpperCase());
             }
             conditions.add(condition);
         }
