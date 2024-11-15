@@ -2,236 +2,474 @@ package edu.smu.smusql.bplus;
 
 import edu.smu.smusql.interfaces.RowEntry;
 import java.util.*;
+import java.io.*;
 
 public class BPlusTree {
-    private static final int ORDER = 4; // Order of the B+ tree
-    private Node root;
-    private Node firstLeaf;
-
-    private abstract class Node {
-        List<String> keys;
-        int keyCount;
-        Node parent;
-        boolean isLeaf;
-
-        Node() {
-            this.keys = new ArrayList<>();
-            this.keyCount = 0;
-            this.parent = null;
-            this.isLeaf = false;
-        }
-    }
-
-    private class InternalNode extends Node {
-        List<Node> children;
-
-        InternalNode() {
-            super();
-            this.children = new ArrayList<>();
-        }
-    }
-
-    private class LeafNode extends Node {
-        List<List<RowEntry>> values;
-        LeafNode nextLeaf;
-
-        LeafNode() {
-            super();
-            this.isLeaf = true;
-            this.values = new ArrayList<>();
-            this.nextLeaf = null;
-        }
-    }
+    // change this to experiment with different orders/fanouts (the max keys of
+    // internal nodes)
+    int ORDER = 50;
+    int m = ORDER;
+    InternalNode root;
+    LeafNode firstLeaf;
 
     public BPlusTree() {
-        root = new LeafNode();
-        firstLeaf = (LeafNode) root;
+        this.root = null;
     }
 
-    public void insert(String key, RowEntry value) {
-        if (root == null) {
-            root = new LeafNode();
-            firstLeaf = (LeafNode) root;
-        }
 
-        LeafNode leaf = findLeafNode(key);
-        int insertionPoint = 0;
-        while (insertionPoint < leaf.keyCount && leaf.keys.get(insertionPoint).compareTo(key) < 0) {
-            insertionPoint++;
-        }
+    public void insert(String key, RowEntry rowEntry) {
+        if (isEmpty()) {
 
-        if (insertionPoint < leaf.keyCount && leaf.keys.get(insertionPoint).equals(key)) {
-            // Key exists, add to existing list
-            leaf.values.get(insertionPoint).add(value);
+            /* Flow of execution goes here only when first insert takes place */
+
+            // Create leaf node as first node in B plus tree (root is null)
+            LeafNode ln = new LeafNode(this.m, new DictionaryPair(key, rowEntry));
+
+            // Set as first leaf node (can be used later for in-order leaf traversal)
+            this.firstLeaf = ln;
             return;
         }
 
-        // Insert new key-value pair
-        leaf.keys.add(insertionPoint, key);
-        leaf.values.add(insertionPoint, new ArrayList<>(Collections.singletonList(value)));
-        leaf.keyCount++;
+        // Find leaf node to insert into
+        LeafNode ln = (this.root == null) ? this.firstLeaf : findFirstLeafNodeWithMoreThan(this.root, key);
 
-        if (leaf.keyCount >= ORDER) {
-            splitLeafNode(leaf);
-        }
-    }
+        // Insert into leaf node fails if node becomes overfull
+        if (!ln.insert(new DictionaryPair(key, rowEntry))) {
 
-    private void splitLeafNode(LeafNode leaf) {
-        LeafNode newLeaf = new LeafNode();
-        int splitPoint = (ORDER + 1) / 2;
-        
-        // Move half of the entries to the new leaf
-        newLeaf.keys = new ArrayList<>(leaf.keys.subList(splitPoint, leaf.keyCount));
-        newLeaf.values = new ArrayList<>(leaf.values.subList(splitPoint, leaf.keyCount));
-        newLeaf.keyCount = newLeaf.keys.size();
-        
-        // Update original leaf
-        leaf.keys = new ArrayList<>(leaf.keys.subList(0, splitPoint));
-        leaf.values = new ArrayList<>(leaf.values.subList(0, splitPoint));
-        leaf.keyCount = leaf.keys.size();
+            // Sort all the dictionary pairs with the included pair to be inserted
+            ln.dictionary[ln.numPairs] = new DictionaryPair(key, rowEntry);
+            ln.numPairs++;
+            sortDictionary(ln.dictionary);
 
-        // Update leaf pointers
-        newLeaf.nextLeaf = leaf.nextLeaf;
-        leaf.nextLeaf = newLeaf;
-        
-        String newKey = newLeaf.keys.get(0);
-        
-        if (leaf == root) {
-            InternalNode newRoot = new InternalNode();
-            newRoot.keys.add(newKey);
-            newRoot.children.add(leaf);
-            newRoot.children.add(newLeaf);
-            newRoot.keyCount = 1;
-            
-            root = newRoot;
-            leaf.parent = newRoot;
-            newLeaf.parent = newRoot;
-        } else {
-            insertInParent(leaf, newKey, newLeaf);
-        }
-    }
+            // Split the sorted pairs into two halves
+            int midpoint = getMidpoint();
+            DictionaryPair[] halfDict = splitDictionary(ln, midpoint);
 
-    private void insertInParent(Node left, String key, Node right) {
-        InternalNode parent = (InternalNode) left.parent;
-        
-        int insertionPoint = 0;
-        while (insertionPoint < parent.keyCount && parent.keys.get(insertionPoint).compareTo(key) < 0) {
-            insertionPoint++;
-        }
-        
-        parent.keys.add(insertionPoint, key);
-        parent.children.add(insertionPoint + 1, right);
-        parent.keyCount++;
-        right.parent = parent;
-        
-        if (parent.keyCount >= ORDER) {
-            splitInternalNode(parent);
-        }
-    }
+            if (ln.parent == null) {
 
-    private void splitInternalNode(InternalNode node) {
-        InternalNode newNode = new InternalNode();
-        int splitPoint = ORDER / 2;
-        
-        String promotedKey = node.keys.get(splitPoint);
-        
-        // Move half of the entries to the new node
-        newNode.keys = new ArrayList<>(node.keys.subList(splitPoint + 1, node.keyCount));
-        newNode.children = new ArrayList<>(node.children.subList(splitPoint + 1, node.children.size()));
-        newNode.keyCount = newNode.keys.size();
-        
-        // Update parent pointers for moved children
-        for (Node child : newNode.children) {
-            child.parent = newNode;
-        }
-        
-        // Update original node
-        node.keys = new ArrayList<>(node.keys.subList(0, splitPoint));
-        node.children = new ArrayList<>(node.children.subList(0, splitPoint + 1));
-        node.keyCount = node.keys.size();
-        
-        if (node == root) {
-            InternalNode newRoot = new InternalNode();
-            newRoot.keys.add(promotedKey);
-            newRoot.children.add(node);
-            newRoot.children.add(newNode);
-            newRoot.keyCount = 1;
-            
-            root = newRoot;
-            node.parent = newRoot;
-            newNode.parent = newRoot;
-        } else {
-            insertInParent(node, promotedKey, newNode);
-        }
-    }
+                /* Flow of execution goes here when there is 1 node in tree */
 
-    private LeafNode findLeafNode(String key) {
-        Node current = root;
-        while (!current.isLeaf) {
-            InternalNode internalNode = (InternalNode) current;
-            int i = 0;
-            while (i < internalNode.keyCount && key.compareTo(internalNode.keys.get(i)) >= 0) {
-                i++;
+                // Create internal node to serve as parent, use dictionary midpoint key
+                String[] parent_keys = new String[this.m];
+                parent_keys[0] = halfDict[0].key;
+                InternalNode parent = new InternalNode(this.m, parent_keys);
+                ln.parent = parent;
+                parent.appendChildPointer(ln);
+
+            } else {
+
+                /* Flow of execution goes here when parent exists */
+
+                // Add new key to parent for proper indexing
+                String newParentKey = halfDict[0].key;
+                ln.parent.keys[ln.parent.degree - 1] = newParentKey;
+                Arrays.sort(ln.parent.keys, 0, ln.parent.degree);
             }
-            current = internalNode.children.get(i);
-        }
-        return (LeafNode) current;
-    }
 
-    public List<RowEntry> search(String key) {
-        LeafNode leaf = findLeafNode(key);
-        for (int i = 0; i < leaf.keyCount; i++) {
-            if (leaf.keys.get(i).equals(key)) {
-                return leaf.values.get(i);
+            // Create new LeafNode that holds the other half
+            LeafNode newLeafNode = new LeafNode(this.m, halfDict, ln.parent);
+
+            // Update child pointers of parent node
+            int pointerIndex = ln.parent.findIndexOfPointer(ln) + 1;
+            ln.parent.insertChildPointer(newLeafNode, pointerIndex);
+
+            // Make leaf nodes siblings of one another
+            newLeafNode.rightSibling = ln.rightSibling;
+            if (newLeafNode.rightSibling != null) {
+                newLeafNode.rightSibling.leftSibling = newLeafNode;
             }
-        }
-        return new ArrayList<>();
-    }
+            ln.rightSibling = newLeafNode;
+            newLeafNode.leftSibling = ln;
 
-    public List<RowEntry> searchRange(String startKey, String endKey) {
-        List<RowEntry> result = new ArrayList<>();
-        LeafNode current = findLeafNode(startKey);
-        
-        boolean started = false;
-        while (current != null) {
-            for (int i = 0; i < current.keyCount; i++) {
-                String currentKey = current.keys.get(i);
-                if (currentKey.compareTo(startKey) >= 0 && currentKey.compareTo(endKey) <= 0) {
-                    started = true;
-                    result.addAll(current.values.get(i));
-                } else if (started) {
-                    return result;
+            if (this.root == null) {
+
+                // Set the root of B+ tree to be the parent
+                this.root = ln.parent;
+
+            } else {
+
+                /*
+                 * If parent is overfull, repeat the process up the tree,
+                 * until no deficiencies are found
+                 */
+                InternalNode in = ln.parent;
+                while (in != null) {
+                    if (in.isOverfull()) {
+                        splitInternalNode(in);
+                    } else {
+                        break;
+                    }
+                    in = in.parent;
                 }
             }
-            current = current.nextLeaf;
+
         }
-        return result;
     }
 
-    public void delete(String key, RowEntry value) {
-        LeafNode leaf = findLeafNode(key);
-        for (int i = 0; i < leaf.keyCount; i++) {
-            if (leaf.keys.get(i).equals(key)) {
-                leaf.values.get(i).remove(value);
-                if (leaf.values.get(i).isEmpty()) {
-                    leaf.keys.remove(i);
-                    leaf.values.remove(i);
-                    leaf.keyCount--;
+    List<RowEntry> searchAll() {
+        List<RowEntry> res = new ArrayList<RowEntry>();
+        if (isEmpty()) {
+            return res;
+        }
+        LeafNode ln = this.firstLeaf;
+        while (ln != null) {
+            res.addAll(ln.getAllEntries());
+            ln = ln.rightSibling;
+        }
+        return res;
+    }
+
+    public List<RowEntry> searchEqualTo(String key) {
+
+        List<RowEntry> res = new ArrayList<RowEntry>();
+        // If B+ tree is completely empty, simply return null
+        if (isEmpty()) {
+            return res;
+        }
+
+        if (this.root == null) {
+            return this.firstLeaf.getRowEntriesEqualTo(key);
+        }
+
+        List<LeafNode> leafNodes = findLeafNodesEqualTo(this.root, key);
+
+        for (LeafNode ln : leafNodes) {
+            res.addAll(ln.getRowEntriesEqualTo(key));
+        }
+
+        return res;
+    }
+
+    public List<RowEntry> searchGreaterThan(String key) {
+        List<RowEntry> res = new ArrayList<RowEntry>();
+        if (isEmpty()) {
+            return res;
+        }
+        if (this.root == null) {
+            return this.firstLeaf.getRowEntriesMoreThan(key);
+        }
+        LeafNode ln = findFirstLeafNodeWithMoreThan(this.root, key);
+        res.addAll(ln.getRowEntriesMoreThan(key));
+        while (ln.rightSibling != null) {
+            ln = ln.rightSibling;
+            res.addAll(ln.getAllEntries());
+        }
+        return res;
+    }
+    
+    public List<RowEntry> searchGreaterThanOrEqualTo(String key) {
+        List<RowEntry> res = new ArrayList<RowEntry>();
+        if (isEmpty()) {
+            return res;
+        }
+        if (this.root == null) {
+            return this.firstLeaf.getRowEntriesMoreThanOrEqual(key);
+        }
+        LeafNode ln = findFirstLeafNodeWithMoreThan(this.root, key);
+        res.addAll(ln.getRowEntriesMoreThanOrEqual(key));
+        while (ln.rightSibling != null) {
+            ln = ln.rightSibling;
+            res.addAll(ln.getAllEntries());
+        }
+        return res;
+    }
+    
+    public List<RowEntry> searchLessThan(String key) {
+        List<RowEntry> res = new ArrayList<RowEntry>();
+        if (isEmpty()) {
+            return res;
+        }
+        if (this.root == null) {
+            return this.firstLeaf.getRowEntriesLessThan(key);
+        }
+        LeafNode ln = findLastLeafNodeWithLessThan(this.root, key);
+        res.addAll(ln.getRowEntriesLessThan(key));
+        while (ln.leftSibling != null) {
+            ln = ln.leftSibling;
+            res.addAll(ln.getAllEntries());
+        }
+        return res;
+    }
+    
+    public List<RowEntry> searchLessThanOrEqualTo(String key) {
+        List<RowEntry> res = new ArrayList<RowEntry>();
+        if (isEmpty()) {
+            return res;
+        }
+        if (this.root == null) {
+            return this.firstLeaf.getRowEntriesLessThanOrEqual(key);
+        }
+        LeafNode ln = findLastLeafNodeWithLessThan(this.root, key);
+        res.addAll(ln.getRowEntriesLessThanOrEqual(key));
+        while (ln.leftSibling != null) {
+            ln = ln.leftSibling;
+            res.addAll(ln.getAllEntries());
+        }
+        return res;
+    }
+
+    /* ~~~~~~~~~~~~~~~~ HELPER FUNCTIONS ~~~~~~~~~~~~~~~~ */
+
+    private List<LeafNode> findLeafNodesEqualTo(InternalNode node, String key) {
+
+        List<LeafNode> leafNodes = new ArrayList<LeafNode>();
+
+        // Initialize keys and index variable
+        String[] keys = node.keys;
+        int i = 0;
+
+        List<Node> childNodes = new ArrayList<Node>();
+
+        while (i < node.degree - 1&& keys[i].compareTo(key) < 0) {
+            i++;
+        }
+        childNodes.add(node.childPointers[i]);
+        i++;
+        while (i < node.degree - 1 && keys[i].equals(key)) {
+            childNodes.add(node.childPointers[i]);
+            i++;
+        }
+
+        /*
+         * Return node if it is a LeafNode object,
+         * otherwise repeat the search function a level down
+         */
+        if (childNodes.get(0) instanceof LeafNode) {
+            for (Node childNode : childNodes) {
+                leafNodes.add((LeafNode) childNode);
+            }
+        } else {
+            for (Node childNode : childNodes) {
+                leafNodes.addAll(findLeafNodesEqualTo((InternalNode) childNode, key));
+            }
+        }
+        return leafNodes;
+    }
+    private LeafNode findFirstLeafNodeWithMoreThan(InternalNode node, String key) {
+
+
+        // Initialize keys and index variable
+        String[] keys = node.keys;
+        int i = 0;
+
+        while (i < node.degree - 1 && keys[i].compareTo(key) < 0) {
+            i++;
+        }
+
+        Node childNode = node.childPointers[i];
+        
+        /*
+         * Return node if it is a LeafNode object,
+         * otherwise repeat the search function a level down
+         */
+        if (childNode instanceof LeafNode) {
+            return (LeafNode) childNode;
+            
+        } else {
+            return findFirstLeafNodeWithMoreThan((InternalNode) childNode, key);
+        }
+    }
+
+    private LeafNode findLastLeafNodeWithLessThan(InternalNode node, String key) {
+        String[] keys = node.keys;
+        int i = node.degree - 2;
+        while (i >= 0 && keys[i].compareTo(key) > 0) {
+            i--;
+        }
+        Node childNode = node.childPointers[i];
+        if (childNode instanceof LeafNode) {
+            return (LeafNode) childNode;
+        } else {
+            return findLastLeafNodeWithLessThan((InternalNode) childNode, key);
+        }
+    }
+
+    /**
+     * This is a simple method that returns the midpoint (or lower bound
+     * depending on the context of the method invocation) of the max degree m of
+     * the B+ tree.
+     * 
+     * @return (int) midpoint/lower bound
+     */
+    private int getMidpoint() {
+        return (int) Math.ceil((this.m + 1) / 2.0) - 1;
+    }
+
+    /**
+     * This is a simple method that determines if the B+ tree is empty or not.
+     * 
+     * @return a boolean indicating if the B+ tree is empty or not
+     */
+    private boolean isEmpty() {
+        return firstLeaf == null;
+    }
+
+    /**
+     * This is a specialized sorting method used upon lists of DictionaryPairs
+     * that may contain interspersed null values.
+     * 
+     * @param dictionary: a list of DictionaryPair objects
+     */
+    private void sortDictionary(DictionaryPair[] dictionary) {
+        Arrays.sort(dictionary, new Comparator<DictionaryPair>() {
+            @Override
+            public int compare(DictionaryPair o1, DictionaryPair o2) {
+                if (o1 == null && o2 == null) {
+                    return 0;
                 }
-                return;
+                if (o1 == null) {
+                    return 1;
+                }
+                if (o2 == null) {
+                    return -1;
+                }
+                return o1.compareTo(o2);
             }
+        });
+    }
+
+    /**
+     * This method modifies the InternalNode 'in' by removing all pointers within
+     * the childPointers after the specified split. The method returns the removed
+     * pointers in a list of their own to be used when constructing a new
+     * InternalNode sibling.
+     * 
+     * @param in:    an InternalNode whose childPointers will be split
+     * @param split: the index at which the split in the childPointers begins
+     * @return a Node[] of the removed pointers
+     */
+    private Node[] splitChildPointers(InternalNode in, int split) {
+
+        Node[] pointers = in.childPointers;
+        Node[] halfPointers = new Node[this.m + 1];
+
+        // Copy half of the values into halfPointers while updating original keys
+        for (int i = split + 1; i < pointers.length; i++) {
+            halfPointers[i - split - 1] = pointers[i];
+            in.removePointer(i);
+        }
+
+        return halfPointers;
+    }
+
+    /**
+     * This method splits a single dictionary into two dictionaries where all
+     * dictionaries are of equal length, but each of the resulting dictionaries
+     * holds half of the original dictionary's non-null values. This method is
+     * primarily used when splitting a node within the B+ tree. The dictionary of
+     * the specified LeafNode is modified in place. The method returns the
+     * remainder of the DictionaryPairs that are no longer within ln's dictionary.
+     * 
+     * @param ln:    list of DictionaryPairs to be split
+     * @param split: the index at which the split occurs
+     * @return DictionaryPair[] of the two split dictionaries
+     */
+    private DictionaryPair[] splitDictionary(LeafNode ln, int split) {
+
+        DictionaryPair[] dictionary = ln.dictionary;
+
+        /*
+         * Initialize two dictionaries that each hold half of the original
+         * dictionary values
+         */
+        DictionaryPair[] halfDict = new DictionaryPair[this.m];
+
+        // Copy half of the values into halfDict
+        for (int i = split; i < dictionary.length; i++) {
+            halfDict[i - split] = dictionary[i];
+            ln.delete(i);
+        }
+
+        return halfDict;
+    }
+
+    /**
+     * When an insertion into the B+ tree causes an overfull node, this method
+     * is called to remedy the issue, i.e. to split the overfull node. This method
+     * calls the sub-methods of splitKeys() and splitChildPointers() in order to
+     * split the overfull node.
+     * 
+     * @param in: an overfull InternalNode that is to be split
+     */
+    private void splitInternalNode(InternalNode in) {
+
+        // Acquire parent
+        InternalNode parent = in.parent;
+
+        // Split keys and pointers in half
+        int midpoint = getMidpoint();
+        String newParentKey = in.keys[midpoint];
+        String[] halfKeys = splitKeys(in.keys, midpoint);
+        Node[] halfPointers = splitChildPointers(in, midpoint);
+
+        // Change degree of original InternalNode in
+        in.degree = Search.linearNullSearch(in.childPointers);
+
+        // Create new sibling internal node and add half of keys and pointers
+        InternalNode sibling = new InternalNode(this.m, halfKeys, halfPointers);
+        for (Node pointer : halfPointers) {
+            if (pointer != null) {
+                pointer.parent = sibling;
+            }
+        }
+
+        // Make internal nodes siblings of one another
+        sibling.rightSibling = in.rightSibling;
+        if (sibling.rightSibling != null) {
+            sibling.rightSibling.leftSibling = sibling;
+        }
+        in.rightSibling = sibling;
+        sibling.leftSibling = in;
+
+        if (parent == null) {
+
+            // Create new root node and add midpoint key and pointers
+            String[] keys = new String[this.m];
+            keys[0] = newParentKey;
+            InternalNode newRoot = new InternalNode(this.m, keys);
+            newRoot.appendChildPointer(in);
+            newRoot.appendChildPointer(sibling);
+            this.root = newRoot;
+
+            // Add pointers from children to parent
+            in.parent = newRoot;
+            sibling.parent = newRoot;
+
+        } else {
+
+            // Add key to parent
+            parent.keys[parent.degree - 1] = newParentKey;
+            Arrays.sort(parent.keys, 0, parent.degree);
+
+            // Set up pointer to new sibling
+            int pointerIndex = parent.findIndexOfPointer(in) + 1;
+            parent.insertChildPointer(sibling, pointerIndex);
+            sibling.parent = parent;
         }
     }
 
-    public List<RowEntry> getAllValues() {
-        List<RowEntry> result = new ArrayList<>();
-        LeafNode current = (LeafNode) firstLeaf;
-        while (current != null) {
-            for (List<RowEntry> valueList : current.values) {
-                result.addAll(valueList);
-            }
-            current = current.nextLeaf;
+    /**
+     * This method modifies a list of String-typed objects that represent keys
+     * by removing half of the keys and returning them in a separate String[].
+     * This method is used when splitting an InternalNode object.
+     * 
+     * @param keys:  a list of String objects
+     * @param split: the index where the split is to occur
+     * @return String[] of removed keys
+     */
+    private String[] splitKeys(String[] keys, int split) {
+
+        String[] halfKeys = new String[this.m];
+
+        // Remove split-indexed value from keys
+        keys[split] = null;
+
+        // Copy half of the values into halfKeys while updating original keys
+        for (int i = split + 1; i < keys.length; i++) {
+            halfKeys[i - split - 1] = keys[i];
+            keys[i] = null;
         }
-        return result;
+
+        return halfKeys;
     }
-} 
+}

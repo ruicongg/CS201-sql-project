@@ -10,13 +10,14 @@ import edu.smu.smusql.table.Table;
 import edu.smu.smusql.interfaces.StorageInterface;
 import edu.smu.smusql.table.IndicesStorage;
 import edu.smu.smusql.table.LSMStorage;
+import edu.smu.smusql.bplus.BPlusTreeStorage;
 
 public class Engine {
 
     /**
      * CHANGE THIS FOR STORAGE IMPLEMENTATIONS
      */
-    private final StorageInterface storageInterface = new LSMStorage();
+    private final StorageInterface storageInterface = new BPlusTreeStorage();
 
     /**
      * REMOVE PARAMETERS TO DISABLE BLOOM FILTER

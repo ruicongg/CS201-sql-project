@@ -3,6 +3,7 @@ package edu.smu.smusql;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.*;
 
+
 // These test cases only test the functionality as per required in the handout.
 // Cases not tested:
 // - More than 2 where conditions
