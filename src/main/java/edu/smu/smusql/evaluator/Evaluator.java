@@ -167,10 +167,10 @@ public class Evaluator {
         complexSelectQuery(random, Math.round(complexPercentage * selectPercentage * numQueries));
         complexUpdateQuery(random, Math.round(complexPercentage * updatePercentage * numQueries));
 
-        insertRandomData(random, Math.round((1 - complexPercentage) * insertPercentage * numQueries));
+        insertRandomData(random, Math.round(insertPercentage * numQueries));
         deleteRandomData(random, Math.round(deletePercentage * numQueries));
         updateRandomData(random, Math.round((1 - complexPercentage) * updatePercentage * numQueries));
-        selectRandomData(random, Math.round(selectPercentage * numQueries));
+        selectRandomData(random, Math.round((1 - complexPercentage) * selectPercentage * numQueries));
 
         printMetrics();
     }
