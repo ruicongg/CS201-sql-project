@@ -3,6 +3,7 @@ package edu.smu.smusql;
 import java.util.*;
 
 import edu.smu.smusql.evaluator.EvaluationMode;
+import edu.smu.smusql.evaluator.EvaluationOrder;
 import edu.smu.smusql.evaluator.EvaluationSetup;
 import edu.smu.smusql.evaluator.Evaluator;
 import edu.smu.smusql.evaluator.SupportedQueries;
@@ -56,8 +57,18 @@ public class Main {
                 System.out.print("1. 100, 2. 50, 3. 0 \nsmusql> ");
                 double complexPercentage = Double.parseDouble(scanner.nextLine()) / 100.0;
 
+                System.out.println("How would you like to order your queries?");
+                System.out.println("1. Enter 'random' for random order of queries");
+                System.out.print("2. Enter 'sequential' to fully complete each query type \nsmusql> ");
+
+                EvaluationOrder order = EvaluationOrder.valueOf(scanner.nextLine().toUpperCase());
+
                 long startTime = System.nanoTime();
-                evaluator.evaluate(complexPercentage, numQueries);
+                if (order == EvaluationOrder.RANDOM) {
+                    evaluator.evaluateRandomly(complexPercentage, numQueries);
+                } else {
+                    evaluator.evaluate(complexPercentage, numQueries);
+                }                
                 long stopTime = System.nanoTime();
                 long elapsedTime = stopTime - startTime;
                 double elapsedTimeInSecond = (double) elapsedTime / 1_000_000_000;
