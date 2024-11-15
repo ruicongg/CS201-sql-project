@@ -175,6 +175,81 @@ public class Evaluator {
         printMetrics();
     }
 
+    public void evaluateRandomly(double complexPercentage, long numQueries) {
+        //cycle through each type of query 
+        //Determine the number of queries for each type
+        long numComplexSelects = Math.round(complexPercentage * selectPercentage * numQueries);
+        long numComplexUpdates = Math.round(complexPercentage * updatePercentage * numQueries);
+        long numInserts = Math.round((1 - complexPercentage) * insertPercentage * numQueries);
+        long numDeletes = Math.round(deletePercentage * numQueries);
+        long numUpdates = Math.round((1 - complexPercentage) * updatePercentage * numQueries);
+        long numSelects = Math.round(selectPercentage * numQueries);
+
+        Random randomQuery = new Random();
+
+        for (long i = 0; i < numQueries; i++) {
+            int queryType = randomQuery.nextInt(6); //0 to 5 for the 6 query types
+    
+            switch (queryType) {
+                case 0: //complex select
+                    if (numComplexSelects > 0) {
+                        complexSelectQuery(random, 1);
+                        numComplexSelects--;
+                    } else {
+                        i--; 
+                    }
+                    break;
+    
+                case 1: //complex update
+                    if (numComplexUpdates > 0) {
+                        complexUpdateQuery(random, 1);
+                        numComplexUpdates--;
+                    } else {
+                        i--;
+                    }
+                    break;
+    
+                case 2: //insert
+                    if (numInserts > 0) {
+                        insertRandomData(random, 1);
+                        numInserts--;
+                    } else {
+                        i--;
+                    }
+                    break;
+    
+                case 3: //delete
+                    if (numDeletes > 0) {
+                        deleteRandomData(random, 1);
+                        numDeletes--;
+                    } else {
+                        i--;
+                    }
+                    break;
+    
+                case 4: //update
+                    if (numUpdates > 0) {
+                        updateRandomData(random, 1);
+                        numUpdates--;
+                    } else {
+                        i--;
+                    }
+                    break;
+    
+                case 5: //simple select
+                    if (numSelects > 0) {
+                        selectRandomData(random, 1);
+                        numSelects--;
+                    } else {
+                        i--;
+                    }
+                    break;
+            }
+        }
+    
+        printMetrics();
+    }
+
     // Helper method to insert random data into users, products, or orders table
     private void insertRandomData(Random random, long insertQueries) {
         System.out.println("Executing " + insertQueries + " simple insert queries...");
