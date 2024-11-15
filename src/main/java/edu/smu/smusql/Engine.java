@@ -10,16 +10,19 @@ import edu.smu.smusql.table.Table;
 import edu.smu.smusql.interfaces.StorageInterface;
 import edu.smu.smusql.table.IndicesStorage;
 import edu.smu.smusql.table.LSMStorage;
+import edu.smu.smusql.table.BSTStorage; // Import BSTStorage
 
 public class Engine {
 
     /**
      * CHANGE THIS FOR STORAGE IMPLEMENTATIONS
      */
-    private final StorageInterface storageInterface = new LSMStorage();
+    // private final StorageInterface storageInterface = new LSMStorage();
+    private final StorageInterface storageInterface = new BSTStorage(); // Change depending on storage type
 
     /**
      * REMOVE PARAMETERS TO DISABLE BLOOM FILTER
+     * 
      * @param size
      * @param hashCount
      */
@@ -33,7 +36,6 @@ public class Engine {
     private static final int CACHE_CAPACITY = 10000;
     private final ResultCache resultCache = new ResultCache(CACHE_CAPACITY);
 
-
     public String executeSQL(String query) {
         /*
          * Basic Input Validation
@@ -43,7 +45,7 @@ public class Engine {
                 throw new InvalidCommandException("ERROR: No command found");
             }
             Object parsedStatement = Parser.parseStatement(query);
-            
+
             if (parsedStatement instanceof Create create) {
                 return create(create);
             } else if (parsedStatement instanceof Insert insert) {
@@ -77,18 +79,17 @@ public class Engine {
          * Add into bloom filter
          */
         if (bloomFilter.getSize() != 0) {
-            for (String value: values) {
+            for (String value : values) {
                 bloomFilter.add(value);
             }
         }
-        
 
         storageInterface.insert(insert);
         return "Row inserted into " + tableName;
     }
 
     public String delete(Delete delete) {
-        
+
         String tableName = delete.getTablename();
         if (!storageInterface.tableExists(tableName)) {
             throw new InvalidCommandException("ERROR: Table not found");
@@ -101,11 +102,11 @@ public class Engine {
 
         int deletedCount = storageInterface.delete(delete);
         return "Rows deleted from " + tableName + ". " + deletedCount + " rows affected.";
-        
+
     }
 
     public String select(Select select) {
-    
+
         String tableName = select.getTablename();
         if (!storageInterface.tableExists(tableName)) {
             throw new InvalidCommandException("ERROR: Table not found");
@@ -134,7 +135,6 @@ public class Engine {
 
     public String update(Update update) {
 
-
         String tableName = update.getTablename();
         if (!storageInterface.tableExists(tableName)) {
             throw new InvalidCommandException("ERROR: Table not found");
@@ -151,12 +151,11 @@ public class Engine {
 
         int updatedCount = storageInterface.update(update);
 
-
         return String.format("Table %s updated. %d rows affected.", tableName, updatedCount);
     }
 
     public String create(Create create) {
-    
+
         String tableName = create.getTablename();
         if (storageInterface.tableExists(tableName)) {
             throw new InvalidCommandException("ERROR: Table already exists");
@@ -170,11 +169,11 @@ public class Engine {
     /*
      * HELPER METHODS
      */
-    private boolean conditionsBloomFilter(List <WhereCondition> conditions) {
+    private boolean conditionsBloomFilter(List<WhereCondition> conditions) {
         if (conditions != null && !conditions.isEmpty()) {
             boolean mightContainAnyCondition = conditions.stream()
-                .map(WhereCondition::getValue)
-                .anyMatch(bloomFilter::mightContain);
+                    .map(WhereCondition::getValue)
+                    .anyMatch(bloomFilter::mightContain);
 
             return (!mightContainAnyCondition); // returns true if no condition found
         }
@@ -185,24 +184,24 @@ public class Engine {
         StringBuilder result = new StringBuilder();
         // Headers
         result.append(String.join("\t", columns))
-              .append("\n");
-        
+                .append("\n");
+
         // Rows
 
+        // for (RowEntry row : rows) {
+        // result.append(row.getValue(columns.get(0)));
+        // }
         for (RowEntry row : rows) {
-            result.append(row.getValue(columns.get(0)));
-        }
-        for (RowEntry row : rows) {
-            for (int i = 1; i < columns.size(); i++) {
-                result.append("\t");
+            // for (int i = 1; i < columns.size(); i++) {
+            for (int i = 0; i < columns.size(); i++) {
                 result.append(row.getValue(columns.get(i)));
+                result.append("\t");
             }
             result.append("\n");
         }
-        
+
         return result.toString();
     }
-
 
     /**
      * generates a unique cache key for a SELECT query.

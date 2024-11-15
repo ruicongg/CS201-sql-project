@@ -7,15 +7,17 @@ import edu.smu.smusql.evaluator.EvaluationSetup;
 import edu.smu.smusql.evaluator.Evaluator;
 import edu.smu.smusql.evaluator.SupportedQueries;
 import edu.smu.smusql.lsm.*;
+import edu.smu.smusql.bst.*;
 
 // @author ziyuanliu@smu.edu.sg
 
 public class Main {
     /*
-     *  Main method for accessing the command line interface of the database engine.
-     *  MODIFICATION OF THIS FILE IS NOT RECOMMENDED!
+     * Main method for accessing the command line interface of the database engine.
+     * MODIFICATION OF THIS FILE IS NOT RECOMMENDED!
      */
     static Engine dbEngine = new Engine();
+
     public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
@@ -23,7 +25,8 @@ public class Main {
         while (true) {
             System.out.println("1. Enter 'exit' to exit");
             System.out.println("2. Enter 'evaluate' to evaluate the engine");
-            System.out.print("3. Enter 'lsm' to test the lsm implementation \nsmusql> ");
+            System.out.println("3. Enter 'lsm' to test the lsm implementation");
+            System.out.print("4. Enter 'bst' to test the BST implementation \nsmusql> ");
             String query = scanner.nextLine();
             if (query.equalsIgnoreCase("exit")) {
                 break;
@@ -66,16 +69,18 @@ public class Main {
             } else if (query.equalsIgnoreCase("lsm")) {
                 LSMTreeTester.testLSM();
                 break;
+            } else if (query.equalsIgnoreCase("bst")) {
+                BSTTreeTester.testBST();
+                break;
             }
             System.out.println(dbEngine.executeSQL(query));
         }
         scanner.close();
     }
 
-
-
     /**
-     * Interactively builds an Evaluator instance by collecting percentages for each query type.
+     * Interactively builds an Evaluator instance by collecting percentages for each
+     * query type.
      *
      * @param scanner  Scanner instance for reading user input.
      * @param dbEngine

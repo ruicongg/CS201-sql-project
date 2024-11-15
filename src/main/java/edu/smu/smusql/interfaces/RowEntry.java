@@ -7,7 +7,7 @@ import java.util.Map;
 import edu.smu.smusql.parser.WhereCondition;
 
 public class RowEntry {
-    private final Map<String, String> values;
+    protected final Map<String, String> values;
     private boolean isDeleted;
 
     public RowEntry() {
@@ -29,7 +29,7 @@ public class RowEntry {
 
     public String toString() {
         String str = "[";
-        for (String key: values.keySet()) {
+        for (String key : values.keySet()) {
             str += key + ": " + values.get(key) + ", ";
         }
         if (str.length() > 1) {
