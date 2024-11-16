@@ -20,12 +20,12 @@ public class Evaluator {
     private final double updatePercentage;
     private final double selectPercentage;
 
-    private double simpleInsertSpeed;
-    private double simpleUpdateSpeed;
-    private double simpleDeleteSpeed;
-    private double simpleSelectSpeed;
-    private double complexSelectSpeed;
-    private double complexUpdateSpeed;
+    private double simpleInsertSpeed = 0.0;
+    private double simpleUpdateSpeed = 0.0;
+    private double simpleDeleteSpeed = 0.0;
+    private double simpleSelectSpeed = 0.0;
+    private double complexSelectSpeed = 0.0;
+    private double complexUpdateSpeed = 0.0;
 
     /**
      * Private constructor to enforce object creation through the Builder.
@@ -167,10 +167,10 @@ public class Evaluator {
         complexSelectQuery(random, Math.round(complexPercentage * selectPercentage * numQueries));
         complexUpdateQuery(random, Math.round(complexPercentage * updatePercentage * numQueries));
 
-        insertRandomData(random, Math.round((1 - complexPercentage) * insertPercentage * numQueries));
+        insertRandomData(random, Math.round(insertPercentage * numQueries));
         deleteRandomData(random, Math.round(deletePercentage * numQueries));
         updateRandomData(random, Math.round((1 - complexPercentage) * updatePercentage * numQueries));
-        selectRandomData(random, Math.round(selectPercentage * numQueries));
+        selectRandomData(random, Math.round((1 - complexPercentage) * selectPercentage * numQueries));
 
         printMetrics();
     }
@@ -215,7 +215,7 @@ public class Evaluator {
         }
         long endTime = System.nanoTime();
         long elapsedTime = endTime - startTime;
-        this.simpleInsertSpeed = (double) (((double)elapsedTime / 1_000_000)/insertQueries);
+        this.simpleInsertSpeed += (double) (((double)elapsedTime / 1_000_000)/insertQueries);
     }
 
     // Helper method to randomly select data from tables
@@ -239,7 +239,7 @@ public class Evaluator {
         }
         long endTime = System.nanoTime();
         long elapsedTime = endTime - startTime;
-        this.simpleSelectSpeed = (double) (((double)elapsedTime / 1_000_000)/selectQueries);
+        this.simpleSelectSpeed += (double) (((double)elapsedTime / 1_000_000)/selectQueries);
     }
 
     // Helper method to update random data in the tables
@@ -276,7 +276,7 @@ public class Evaluator {
         }
         long endTime = System.nanoTime();
         long elapsedTime = endTime - startTime;
-        this.simpleUpdateSpeed = (double) (((double)elapsedTime / 1_000_000)/updateQueries);
+        this.simpleUpdateSpeed += (double) (((double)elapsedTime / 1_000_000)/updateQueries);
     }
 
     // Helper method to delete random data from tables
@@ -310,7 +310,7 @@ public class Evaluator {
         }
         long endTime = System.nanoTime();
         long elapsedTime = endTime - startTime;
-        this.simpleDeleteSpeed = (double) (((double)elapsedTime / 1_000_000)/deleteQueries);
+        this.simpleDeleteSpeed += (double) (((double)elapsedTime / 1_000_000)/deleteQueries);
     }
 
     // Helper method to execute a complex UPDATE query with WHERE
@@ -341,7 +341,7 @@ public class Evaluator {
         }
         long endTime = System.nanoTime();
         long elapsedTime = endTime - startTime;
-        this.complexUpdateSpeed = (double) (((double)elapsedTime / 1_000_000)/complexUpdateQueries);
+        this.complexUpdateSpeed += (double) (((double)elapsedTime / 1_000_000)/complexUpdateQueries);
     }
 
     // Helper method to execute a complex SELECT query with WHERE, AND, OR, >, <, LIKE
@@ -380,7 +380,7 @@ public class Evaluator {
         }
         long endTime = System.nanoTime();
         long elapsedTime = endTime - startTime;
-        this.complexSelectSpeed = (double) (((double)elapsedTime / 1_000_000)/complexSelectQueries);
+        this.complexSelectSpeed += (double) (((double)elapsedTime / 1_000_000)/complexSelectQueries);
     }
 
 
