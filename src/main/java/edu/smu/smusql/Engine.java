@@ -189,12 +189,9 @@ public class Engine {
         // Rows
 
         for (RowEntry row : rows) {
-            result.append(row.getValue(columns.get(0)));
-        }
-        for (RowEntry row : rows) {
-            for (int i = 1; i < columns.size(); i++) {
-                result.append("\t");
+            for (int i = 0; i < columns.size(); i++) {
                 result.append(row.getValue(columns.get(i)));
+                result.append("\t");
             }
             result.append("\n");
         }

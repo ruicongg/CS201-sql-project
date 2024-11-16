@@ -15,8 +15,16 @@ class DictionaryPair implements Comparable<DictionaryPair> {
     }
 
     // smaller keys will come first
+
     @Override
     public int compareTo(DictionaryPair o) {
-        return key.compareTo(o.key);
+        try {
+            int thisKey = Integer.parseInt(key);
+            int otherKey = Integer.parseInt(o.key);
+            return Integer.compare(thisKey, otherKey);
+        } catch (NumberFormatException e) {
+            // If not numbers, fall back to string comparison
+            return key.compareTo(o.key);
+        }
     }
 }

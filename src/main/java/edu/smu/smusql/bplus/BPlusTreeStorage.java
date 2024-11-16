@@ -49,7 +49,6 @@ public class BPlusTreeStorage implements StorageInterface {
             int numDeleted = 0;
             for (Integer index : indices) {
                 table.getRow(index).setDeleted();
-                System.out.println(table.getRow(index).isDeleted());
                 numDeleted++;
             }
             return numDeleted;
@@ -77,7 +76,7 @@ public class BPlusTreeStorage implements StorageInterface {
             List<Integer> indices = processOneWhereConditions(select.getConditions().get(0), table);
             List<RowEntry> rowEntries = new ArrayList<>();
             for (Integer index : indices) {
-                System.out.println(table.getRow(index).isDeleted());    
+
                 if (!table.getRow(index).isDeleted()) {
                     rowEntries.add(table.getRow(index));
                 }
@@ -87,6 +86,7 @@ public class BPlusTreeStorage implements StorageInterface {
         List<Integer> indices = processTwoWhereConditions(select.getConditions(), table);
         List<RowEntry> rowEntries = new ArrayList<>();
         for (Integer index : indices) {
+
             if (!table.getRow(index).isDeleted()) {
                 rowEntries.add(table.getRow(index));
             }
@@ -104,7 +104,6 @@ public class BPlusTreeStorage implements StorageInterface {
             List<Integer> indices = processOneWhereConditions(update.getConditions().get(0), table);
             int numUpdated = 0;
             for (Integer index : indices) {
-                System.out.println("entered update");
                 if (!table.getRow(index).isDeleted()) {
                     table.updateRow(index, update.getColumnname(), update.getValue());
                     numUpdated++;

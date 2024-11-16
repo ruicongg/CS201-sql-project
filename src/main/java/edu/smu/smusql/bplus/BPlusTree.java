@@ -136,15 +136,19 @@ public class BPlusTree {
     }
 
     public List<Integer> searchGreaterThan(String key) {
+
         List<Integer> res = new ArrayList<>();
         if (isEmpty()) {
             return res;
         }
         if (this.root == null) {
+;
             return this.firstLeaf.getRowEntriesMoreThan(key);
+
         }
         LeafNode ln = findFirstLeafNodeWithMoreThan(this.root, key);
-        res.addAll(ln.getRowEntriesMoreThan(key));
+
+        System.out.println("res: " + res.size());
         while (ln.rightSibling != null) {
             ln = ln.rightSibling;
             res.addAll(ln.getAllEntries());

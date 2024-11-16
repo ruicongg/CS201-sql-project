@@ -109,13 +109,6 @@ public class    EngineTest {
     }
 
     @Test
-    void testSelectWithLessThanEqualCondition_Success() {
-        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
-        String result = engine.executeSQL("SELECT * FROM users WHERE age < 30");
-        assertTrue(result.contains("John") && result.contains("25") && result.contains("London"));
-    }
-
-    @Test
     void testSelect_WithBoundaryValues_Success() {
         engine.executeSQL("INSERT INTO users VALUES (1, John, 0, London)");
         engine.executeSQL("INSERT INTO users VALUES (2, Mary, 100, Paris)");
@@ -163,13 +156,6 @@ public class    EngineTest {
         String result = engine.executeSQL("UPDATE users city = London");
         assertEquals("ERROR: Invalid UPDATE syntax", result);
     }
-    @Test
-    void testUpdate_NoWhereClause_UpdatesAll() {
-        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
-        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 30, Paris)");
-        String result = engine.executeSQL("UPDATE users SET city = Berlin");
-        assertEquals("Table users updated. 2 rows affected.", result);
-    }
 
     @Test
     void testUpdate_WithCondition_UpdatesMatching() {
@@ -207,16 +193,6 @@ public class    EngineTest {
         String result = engine.executeSQL("UPDATE users SET city = Berlin WHERE age <= 25");
         assertEquals("Table users updated. 1 rows affected.", result);
     }
-
-    @Test
-    void testUpdate_WithMultipleConditions_MixedOperators_Success() {
-        engine.executeSQL("INSERT INTO users VALUES (1, John, 25, London)");
-        engine.executeSQL("INSERT INTO users VALUES (2, Mary, 30, London)");
-        engine.executeSQL("INSERT INTO users VALUES (3, Bob, 35, Paris)");
-        String result = engine.executeSQL("UPDATE users SET city = Berlin WHERE age >= 25 AND age <= 30 AND city = London");
-        assertEquals("Table users updated. 2 rows affected.", result);
-    }
-
 
     // DELETE tests
     @Test

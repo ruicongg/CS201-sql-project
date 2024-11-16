@@ -23,7 +23,6 @@ class LeafNode extends Node {
             copy[i] = dictionary[i];
         }
         int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, -1));
-        System.out.println("foundIndex" + foundIndex);
         if (foundIndex < 0) {
             return indices;
         }
@@ -45,8 +44,9 @@ class LeafNode extends Node {
         }
         int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, -1));
         int traversalIndex; 
+
         if (foundIndex >= 0) {
-            traversalIndex = foundIndex + 1;
+            traversalIndex = foundIndex;
             while (traversalIndex < numPairs && dictionary[traversalIndex].key.equals(key)) {
                 traversalIndex++;
             }
@@ -100,6 +100,9 @@ class LeafNode extends Node {
             while (traversalIndex > 0 && dictionary[traversalIndex].key.equals(key)) {
                 traversalIndex--;
             }
+            if (traversalIndex >= 0) {
+                indices.add(dictionary[traversalIndex].indexInTable);
+            }
         } else {
             traversalIndex = -(foundIndex + 1);
         }
@@ -119,7 +122,7 @@ class LeafNode extends Node {
         int traversalIndex;
         if (foundIndex >= 0) {
             traversalIndex = foundIndex;
-            addEntriesAfter(traversalIndex, indices, key);
+            addEntriesHereAndAfter(traversalIndex, indices, key);
         } else {
             traversalIndex = -(foundIndex + 1);
         }
@@ -129,8 +132,8 @@ class LeafNode extends Node {
         return indices;
     }
 
-    private void addEntriesAfter(int index, List<Integer> indices, String key) {
-        int i = index + 1;
+    private void addEntriesHereAndAfter(int index, List<Integer> indices, String key) {
+        int i = index;
         while (i < numPairs && dictionary[i].key.equals(key)) {
             indices.add(dictionary[i].indexInTable);
             i++;
