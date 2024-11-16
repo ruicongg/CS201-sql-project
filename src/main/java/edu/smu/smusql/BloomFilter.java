@@ -28,7 +28,7 @@ public class BloomFilter {
         this.hashCount = hashCount;
         this.bitSet = new BitSet(size);
         this.hashSeeds = new int[hashCount];
-        Random random = new Random();
+        Random random = new Random(2012024);
 
         for (int i = 0; i < hashCount; i++) {
             hashSeeds[i] = random.nextInt();
