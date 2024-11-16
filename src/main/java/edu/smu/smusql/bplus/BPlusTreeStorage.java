@@ -11,6 +11,7 @@ import edu.smu.smusql.parser.*;
 
 import java.util.*;
 
+
 public class BPlusTreeStorage implements StorageInterface {
 
     private Map<String, BPlusTreeTable> tables;
@@ -41,21 +42,26 @@ public class BPlusTreeStorage implements StorageInterface {
 
     @Override 
     public int delete(Delete delete) {
+
         BPlusTreeTable table = tables.get(delete.getTablename());
         if (delete.getConditions().size() == 1) {
-            List<RowEntry> rowEntries = processOneWhereConditions(delete.getConditions().get(0), table);
-            for (RowEntry rowEntry : rowEntries) {
-                rowEntry.setDeleted();
+            List<Integer> indices = processOneWhereConditions(delete.getConditions().get(0), table);
+            int numDeleted = 0;
+            for (Integer index : indices) {
+                table.getRow(index).setDeleted();
+                System.out.println(table.getRow(index).isDeleted());
+                numDeleted++;
             }
-            return rowEntries.size();
+            return numDeleted;
         }
         if (delete.getConditions().size() == 2) {
-            List<RowEntry> rowEntries = processTwoWhereConditions(delete.getConditions(), table);
-
-            for (RowEntry rowEntry : rowEntries) {
-                rowEntry.setDeleted();
+            List<Integer> indices = processTwoWhereConditions(delete.getConditions(), table);
+            int numDeleted = 0;
+            for (Integer index : indices) {
+                table.getRow(index).setDeleted();
+                numDeleted++;
             }
-            return rowEntries.size();
+            return numDeleted;
         }
         return 0;
     }
@@ -68,9 +74,24 @@ public class BPlusTreeStorage implements StorageInterface {
             return table.getAllEntries();
         }
         if (select.getConditions().size() == 1) {
-            return processOneWhereConditions(select.getConditions().get(0), table);
+            List<Integer> indices = processOneWhereConditions(select.getConditions().get(0), table);
+            List<RowEntry> rowEntries = new ArrayList<>();
+            for (Integer index : indices) {
+                System.out.println(table.getRow(index).isDeleted());    
+                if (!table.getRow(index).isDeleted()) {
+                    rowEntries.add(table.getRow(index));
+                }
+            }
+            return rowEntries;
         }
-        return processTwoWhereConditions(select.getConditions(), table);
+        List<Integer> indices = processTwoWhereConditions(select.getConditions(), table);
+        List<RowEntry> rowEntries = new ArrayList<>();
+        for (Integer index : indices) {
+            if (!table.getRow(index).isDeleted()) {
+                rowEntries.add(table.getRow(index));
+            }
+        }
+        return rowEntries;
     }
 
 
@@ -80,18 +101,27 @@ public class BPlusTreeStorage implements StorageInterface {
     public int update(Update update) {
         BPlusTreeTable table = tables.get(update.getTablename());
         if (update.getConditions().size() == 1) {
-            List<RowEntry> rowEntries = processOneWhereConditions(update.getConditions().get(0), table);
-            for (RowEntry rowEntry : rowEntries) {
-                rowEntry.addOrUpdateValue(update.getColumnname(), update.getValue());
+            List<Integer> indices = processOneWhereConditions(update.getConditions().get(0), table);
+            int numUpdated = 0;
+            for (Integer index : indices) {
+                System.out.println("entered update");
+                if (!table.getRow(index).isDeleted()) {
+                    table.updateRow(index, update.getColumnname(), update.getValue());
+                    numUpdated++;
+                }
             }
-            return rowEntries.size();
+            return numUpdated;
         }
         if (update.getConditions().size() == 2) {
-            List<RowEntry> rowEntries = processTwoWhereConditions(update.getConditions(), table);
-            for (RowEntry rowEntry : rowEntries) {
-                rowEntry.addOrUpdateValue(update.getColumnname(), update.getValue());
+            List<Integer> indices = processTwoWhereConditions(update.getConditions(), table);
+            int numUpdated = 0;
+            for (Integer index : indices) {
+                if (!table.getRow(index).isDeleted()) {
+                    table.updateRow(index, update.getColumnname(), update.getValue());
+                    numUpdated++;
+                }
             }
-            return rowEntries.size();
+            return numUpdated;
         }
         return 0;
     }
@@ -116,7 +146,7 @@ public class BPlusTreeStorage implements StorageInterface {
     }
 
 
-    private List<RowEntry> processOneWhereConditions(WhereCondition whereCondition, BPlusTreeTable table) {
+    private List<Integer> processOneWhereConditions(WhereCondition whereCondition, BPlusTreeTable table) {
         String column = whereCondition.getColumn();
         String operator = whereCondition.getOperator();
         String value = whereCondition.getValue();
@@ -133,24 +163,24 @@ public class BPlusTreeStorage implements StorageInterface {
             case "<=":
                 return table.getTreeForColumn(column).searchLessThanOrEqualTo(value);
             default:
-                return new ArrayList<RowEntry>();
+                return new ArrayList<Integer>();
         }
     }
 
-    private List<RowEntry> processTwoWhereConditions(List<WhereCondition> whereConditions, BPlusTreeTable table) {
-        List<RowEntry> condition1 = processOneWhereConditions(whereConditions.get(0), table);
-        List<RowEntry> condition2 = processOneWhereConditions(whereConditions.get(1), table);
+    private List<Integer> processTwoWhereConditions(List<WhereCondition> whereConditions, BPlusTreeTable table) {
+        List<Integer> condition1 = processOneWhereConditions(whereConditions.get(0), table);
+        List<Integer> condition2 = processOneWhereConditions(whereConditions.get(1), table);
         if (whereConditions.get(0).getLogicalOperator().equals("AND")) {
             return intersectLists(condition1, condition2);
         }
         return unionLists(condition1, condition2);
     }
 
-    private List<RowEntry> intersectLists(List<RowEntry> list1, List<RowEntry> list2) {
+    private List<Integer> intersectLists(List<Integer> list1, List<Integer> list2) {
         return list1.stream().filter(list2::contains).collect(Collectors.toList());
     }
 
-    private List<RowEntry> unionLists(List<RowEntry> list1, List<RowEntry> list2) {
+    private List<Integer> unionLists(List<Integer> list1, List<Integer> list2) {
         return Stream.concat(list1.stream(), list2.stream())
                 .distinct()
                 .collect(Collectors.toList());

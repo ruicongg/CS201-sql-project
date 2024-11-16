@@ -16,38 +16,34 @@ class LeafNode extends Node {
     LeafNode rightSibling;
     DictionaryPair[] dictionary;
 
-    List<RowEntry> getRowEntriesEqualTo(String key) {
-        List<RowEntry> rowEntries = new ArrayList<>();
+    List<Integer> getRowEntriesEqualTo(String key) { 
+        List<Integer> indices = new ArrayList<>();
         DictionaryPair[] copy = new DictionaryPair[numPairs];
         for (int i = 0; i < numPairs; i++) {
             copy[i] = dictionary[i];
         }
-        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, null));
+        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, -1));
+        System.out.println("foundIndex" + foundIndex);
         if (foundIndex < 0) {
-            return rowEntries;
+            return indices;
         }
+        indices.add(dictionary[foundIndex].indexInTable);
         for (int i = foundIndex - 1; i >= 0 && dictionary[i].key.equals(key); i--) {
-            RowEntry rowEntry = dictionary[i].rowEntry;
-            if (!rowEntry.isDeleted()) {
-                rowEntries.add(rowEntry);
-            }
+            indices.add(dictionary[i].indexInTable);
         }
         for (int i = foundIndex + 1; i < numPairs && dictionary[i].key.equals(key); i++) {
-            RowEntry rowEntry = dictionary[i].rowEntry;
-            if (!rowEntry.isDeleted()) {
-                rowEntries.add(rowEntry);
-            }
+            indices.add(dictionary[i].indexInTable);
         }
-        return rowEntries;
+        return indices;
     }
 
-    List<RowEntry> getRowEntriesMoreThan(String key) {
-        List<RowEntry> rowEntries = new ArrayList<>();
+    List<Integer> getRowEntriesMoreThan(String key) {
+        List<Integer> indices = new ArrayList<>();
         DictionaryPair[] copy = new DictionaryPair[numPairs];
         for (int i = 0; i < numPairs; i++) {
             copy[i] = dictionary[i];
         }
-        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, null));
+        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, -1));
         int traversalIndex; 
         if (foundIndex >= 0) {
             traversalIndex = foundIndex + 1;
@@ -58,55 +54,46 @@ class LeafNode extends Node {
             traversalIndex = -(foundIndex + 1); // Convert to insertion point
         }
         for (int i = traversalIndex; i < numPairs; i++) {
-            RowEntry rowEntry = dictionary[i].rowEntry;
-            if (!rowEntry.isDeleted()) {
-                rowEntries.add(rowEntry);
-            }
+            indices.add(dictionary[i].indexInTable);
         }
-        return rowEntries;
+        return indices;
     }
 
-    List<RowEntry> getRowEntriesMoreThanOrEqual(String key) {
-        List<RowEntry> rowEntries = new ArrayList<>();
+    List<Integer> getRowEntriesMoreThanOrEqual(String key) {
+        List<Integer> indices = new ArrayList<>();
         DictionaryPair[] copy = new DictionaryPair[numPairs];
         for (int i = 0; i < numPairs; i++) {
             copy[i] = dictionary[i];
         }
-        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, null));
+        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, -1));
         int traversalIndex;
         if (foundIndex >= 0) {
             traversalIndex = foundIndex;
-            addEntriesBefore(traversalIndex, rowEntries, key);
+            addEntriesBefore(traversalIndex, indices, key);
         } else {
-            traversalIndex = -(foundIndex + 1); // Convert to insertion point
+            traversalIndex = -(foundIndex + 1);
         }
         for (int i = traversalIndex; i < numPairs; i++) {
-            RowEntry rowEntry = dictionary[i].rowEntry;
-            if (!rowEntry.isDeleted()) {
-                rowEntries.add(rowEntry);
-            }
+            indices.add(dictionary[i].indexInTable);
         }
-        return rowEntries;
+        return indices;
     }
 
-    private void addEntriesBefore(int index, List<RowEntry> rowEntries, String key) {
+    private void addEntriesBefore(int index, List<Integer> indices, String key) {
         int i = index - 1;
         while (i >= 0 && dictionary[i].key.equals(key)) {
-            RowEntry rowEntry = dictionary[i].rowEntry;
-            if (!rowEntry.isDeleted()) {
-                rowEntries.add(rowEntry);
-            }
+            indices.add(dictionary[i].indexInTable);
             i--;
         }
     }
 
-    List<RowEntry> getRowEntriesLessThan(String key) {
-        List<RowEntry> rowEntries = new ArrayList<>();
+    List<Integer> getRowEntriesLessThan(String key) {
+        List<Integer> indices = new ArrayList<>();
         DictionaryPair[] copy = new DictionaryPair[numPairs];
         for (int i = 0; i < numPairs; i++) {
             copy[i] = dictionary[i];
         }
-        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, null));
+        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, -1));
         int traversalIndex;
         if (foundIndex >= 0) {
             traversalIndex = foundIndex - 1;
@@ -114,60 +101,48 @@ class LeafNode extends Node {
                 traversalIndex--;
             }
         } else {
-            traversalIndex = -(foundIndex + 1); // Convert to insertion point
+            traversalIndex = -(foundIndex + 1);
         }
         for (int i = 0; i < traversalIndex; i++) {
-            RowEntry rowEntry = dictionary[i].rowEntry;
-            if (!rowEntry.isDeleted()) {
-                rowEntries.add(rowEntry);
-            }
+            indices.add(dictionary[i].indexInTable);
         }
-        return rowEntries;
+        return indices;
     }
 
-    List<RowEntry> getRowEntriesLessThanOrEqual(String key) {
-        List<RowEntry> rowEntries = new ArrayList<>();
+    List<Integer> getRowEntriesLessThanOrEqual(String key) {
+        List<Integer> indices = new ArrayList<>();
         DictionaryPair[] copy = new DictionaryPair[numPairs];
         for (int i = 0; i < numPairs; i++) {
             copy[i] = dictionary[i];
         }
-        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, null));
+        int foundIndex = Arrays.binarySearch(copy, new DictionaryPair(key, -1));
         int traversalIndex;
         if (foundIndex >= 0) {
             traversalIndex = foundIndex;
-            addEntriesAfter(traversalIndex, rowEntries, key);
+            addEntriesAfter(traversalIndex, indices, key);
         } else {
-            traversalIndex = -(foundIndex + 1); // Convert to insertion point
+            traversalIndex = -(foundIndex + 1);
         }
         for (int i = 0; i < traversalIndex; i++) {
-            RowEntry rowEntry = dictionary[i].rowEntry;
-            if (!rowEntry.isDeleted()) {
-                rowEntries.add(rowEntry);
-            }
+            indices.add(dictionary[i].indexInTable);
         }
-        return rowEntries;
+        return indices;
     }
 
-    private void addEntriesAfter(int index, List<RowEntry> rowEntries, String key) {
+    private void addEntriesAfter(int index, List<Integer> indices, String key) {
         int i = index + 1;
         while (i < numPairs && dictionary[i].key.equals(key)) {
-            RowEntry rowEntry = dictionary[i].rowEntry;
-            if (!rowEntry.isDeleted()) {
-                rowEntries.add(rowEntry);
-            }
+            indices.add(dictionary[i].indexInTable);
             i++;
         }
     }
 
-    List<RowEntry> getAllEntries() {
-        List<RowEntry> rowEntries = new ArrayList<>();
+    List<Integer> getAllEntries() {
+        List<Integer> indices = new ArrayList<>();
         for (int i = 0; i < numPairs; i++) {
-            RowEntry rowEntry = dictionary[i].rowEntry;
-            if (!rowEntry.isDeleted()) {
-                rowEntries.add(rowEntry);
-            }
+            indices.add(dictionary[i].indexInTable);
         }
-        return rowEntries;
+        return indices;
     }
     /**
      * Given an index, this method sets the dictionary pair at that index

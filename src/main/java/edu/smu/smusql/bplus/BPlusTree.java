@@ -7,7 +7,7 @@ import java.io.*;
 public class BPlusTree {
     // change this to experiment with different orders/fanouts (the max keys of
     // internal nodes)
-    int ORDER = 50;
+    int ORDER = 20;
     int m = ORDER;
     InternalNode root;
     LeafNode firstLeaf;
@@ -17,13 +17,13 @@ public class BPlusTree {
     }
 
 
-    public void insert(String key, RowEntry rowEntry) {
+    public void insert(String key, int index) {
         if (isEmpty()) {
 
             /* Flow of execution goes here only when first insert takes place */
 
             // Create leaf node as first node in B plus tree (root is null)
-            LeafNode ln = new LeafNode(this.m, new DictionaryPair(key, rowEntry));
+            LeafNode ln = new LeafNode(this.m, new DictionaryPair(key, index));
 
             // Set as first leaf node (can be used later for in-order leaf traversal)
             this.firstLeaf = ln;
@@ -34,10 +34,10 @@ public class BPlusTree {
         LeafNode ln = (this.root == null) ? this.firstLeaf : findFirstLeafNodeWithMoreThan(this.root, key);
 
         // Insert into leaf node fails if node becomes overfull
-        if (!ln.insert(new DictionaryPair(key, rowEntry))) {
+        if (!ln.insert(new DictionaryPair(key, index))) {
 
             // Sort all the dictionary pairs with the included pair to be inserted
-            ln.dictionary[ln.numPairs] = new DictionaryPair(key, rowEntry);
+            ln.dictionary[ln.numPairs] = new DictionaryPair(key, index);
             ln.numPairs++;
             sortDictionary(ln.dictionary);
 
@@ -106,8 +106,8 @@ public class BPlusTree {
         }
     }
 
-    List<RowEntry> searchAll() {
-        List<RowEntry> res = new ArrayList<RowEntry>();
+    List<Integer> searchAll() {
+        List<Integer> res = new ArrayList<>();
         if (isEmpty()) {
             return res;
         }
@@ -119,29 +119,24 @@ public class BPlusTree {
         return res;
     }
 
-    public List<RowEntry> searchEqualTo(String key) {
-
-        List<RowEntry> res = new ArrayList<RowEntry>();
-        // If B+ tree is completely empty, simply return null
+    public List<Integer> searchEqualTo(String key) {
+        List<Integer> res = new ArrayList<>();
         if (isEmpty()) {
             return res;
         }
-
         if (this.root == null) {
+
             return this.firstLeaf.getRowEntriesEqualTo(key);
         }
-
         List<LeafNode> leafNodes = findLeafNodesEqualTo(this.root, key);
-
         for (LeafNode ln : leafNodes) {
             res.addAll(ln.getRowEntriesEqualTo(key));
         }
-
         return res;
     }
 
-    public List<RowEntry> searchGreaterThan(String key) {
-        List<RowEntry> res = new ArrayList<RowEntry>();
+    public List<Integer> searchGreaterThan(String key) {
+        List<Integer> res = new ArrayList<>();
         if (isEmpty()) {
             return res;
         }
@@ -157,8 +152,8 @@ public class BPlusTree {
         return res;
     }
     
-    public List<RowEntry> searchGreaterThanOrEqualTo(String key) {
-        List<RowEntry> res = new ArrayList<RowEntry>();
+    public List<Integer> searchGreaterThanOrEqualTo(String key) {
+        List<Integer> res = new ArrayList<>();
         if (isEmpty()) {
             return res;
         }
@@ -174,8 +169,8 @@ public class BPlusTree {
         return res;
     }
     
-    public List<RowEntry> searchLessThan(String key) {
-        List<RowEntry> res = new ArrayList<RowEntry>();
+    public List<Integer> searchLessThan(String key) {
+        List<Integer> res = new ArrayList<>();
         if (isEmpty()) {
             return res;
         }
@@ -191,8 +186,8 @@ public class BPlusTree {
         return res;
     }
     
-    public List<RowEntry> searchLessThanOrEqualTo(String key) {
-        List<RowEntry> res = new ArrayList<RowEntry>();
+    public List<Integer> searchLessThanOrEqualTo(String key) {
+        List<Integer> res = new ArrayList<>();
         if (isEmpty()) {
             return res;
         }
@@ -212,13 +207,13 @@ public class BPlusTree {
 
     private List<LeafNode> findLeafNodesEqualTo(InternalNode node, String key) {
 
-        List<LeafNode> leafNodes = new ArrayList<LeafNode>();
+        List<LeafNode> leafNodes = new ArrayList<>();
 
         // Initialize keys and index variable
         String[] keys = node.keys;
         int i = 0;
 
-        List<Node> childNodes = new ArrayList<Node>();
+        List<Node> childNodes = new ArrayList<>();
 
         while (i < node.degree - 1&& keys[i].compareTo(key) < 0) {
             i++;

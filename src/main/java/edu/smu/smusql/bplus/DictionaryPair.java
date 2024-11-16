@@ -1,5 +1,4 @@
 package edu.smu.smusql.bplus;
-import edu.smu.smusql.interfaces.RowEntry;
 
 /**
  * This class represents a dictionary pair that is to be contained within the
@@ -8,11 +7,11 @@ import edu.smu.smusql.interfaces.RowEntry;
  */
 class DictionaryPair implements Comparable<DictionaryPair> {
     String key;
-    RowEntry rowEntry;
+    int indexInTable;
 
-    DictionaryPair(String key, RowEntry rowEntry) {
+    DictionaryPair(String key, int indexInTable) {
         this.key = key;
-        this.rowEntry = rowEntry;
+        this.indexInTable = indexInTable;
     }
 
     // smaller keys will come first
