@@ -7,7 +7,7 @@ import java.util.Random;
 public class EvaluationSetup {
 
     private final Engine dbEngine;
-    private final Random random = new Random();
+    private final Random random = new Random(2012024);
 
     public EvaluationSetup(Engine dbEngine) {
         this.dbEngine = dbEngine;

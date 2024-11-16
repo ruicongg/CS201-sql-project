@@ -13,7 +13,7 @@ import java.util.Random;
 public class Evaluator {
 
     private final Metrics metrics = new Metrics();
-    private final Random random = new Random();
+    private final Random random = new Random(2012024);
     private final Engine dbEngine;
     private final double insertPercentage;
     private final double deletePercentage;
