@@ -10,7 +10,11 @@ import edu.smu.smusql.table.Table;
 import edu.smu.smusql.interfaces.StorageInterface;
 import edu.smu.smusql.table.IndicesStorage;
 import edu.smu.smusql.table.LSMStorage;
+<<<<<<< HEAD
 import edu.smu.smusql.table.BSTStorage; // Import BSTStorage
+=======
+import edu.smu.smusql.bplus.BPlusTreeStorage;
+>>>>>>> iteration4/bplustree
 
 public class Engine {
 
@@ -26,8 +30,8 @@ public class Engine {
      * @param size
      * @param hashCount
      */
-    private static final int FILTER_SIZE = 128000;
-    private static final int HASH_COUNT = 2;
+    private static final int FILTER_SIZE = 0;
+    private static final int HASH_COUNT = 0;
     private final BloomFilter bloomFilter = new BloomFilter(FILTER_SIZE, HASH_COUNT);
 
     /*
@@ -192,7 +196,10 @@ public class Engine {
         // result.append(row.getValue(columns.get(0)));
         // }
         for (RowEntry row : rows) {
+<<<<<<< HEAD
             // for (int i = 1; i < columns.size(); i++) {
+=======
+>>>>>>> iteration4/bplustree
             for (int i = 0; i < columns.size(); i++) {
                 result.append(row.getValue(columns.get(i)));
                 result.append("\t");
