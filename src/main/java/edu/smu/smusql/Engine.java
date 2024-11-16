@@ -11,6 +11,7 @@ import edu.smu.smusql.interfaces.StorageInterface;
 import edu.smu.smusql.table.IndicesStorage;
 import edu.smu.smusql.table.LSMStorage;
 import edu.smu.smusql.table.BSTStorage; // Import BSTStorage
+import edu.smu.smusql.bplus.BPlusTreeStorage;
 
 public class Engine {
 
@@ -96,8 +97,17 @@ public class Engine {
         }
 
         List<WhereCondition> conditions = delete.getConditions();
-        if (bloomFilter.getSize() != 0 && conditionsBloomFilter(conditions)) {
-            return "No records matched for deletion (filtered by Bloom filter).";
+
+        List<WhereCondition> exactMatchConditions = new ArrayList<>();
+        for (WhereCondition condition : conditions) {
+            if (condition.isExactMatch()) {
+                exactMatchConditions.add(condition);
+            }
+        }
+
+        if (bloomFilter.getSize() != 0 && exactMatchConditions != null && 
+                    conditionsBloomFilter(exactMatchConditions)) {
+            return "No matching records found for deletion (filtered by Bloom filter).";
         }
 
         int deletedCount = storageInterface.delete(delete);
@@ -113,7 +123,16 @@ public class Engine {
         }
 
         List<WhereCondition> conditions = select.getConditions();
-        if (bloomFilter.getSize() != 0 && conditionsBloomFilter(conditions)) {
+
+        List<WhereCondition> exactMatchConditions = new ArrayList<>();
+        for (WhereCondition condition : conditions) {
+            if (condition.isExactMatch()) {
+                exactMatchConditions.add(condition);
+            }
+        }
+
+        if (bloomFilter.getSize() != 0 && exactMatchConditions != null && 
+                    conditionsBloomFilter(exactMatchConditions)) {
             return "No matching records found (filtered by Bloom filter).";
         }
 
@@ -145,8 +164,17 @@ public class Engine {
         }
 
         List<WhereCondition> conditions = update.getConditions();
-        if (bloomFilter.getSize() != 0 && conditionsBloomFilter(conditions)) {
-            return "No records matched for update (filtered by Bloom filter).";
+        
+        List<WhereCondition> exactMatchConditions = new ArrayList<>();
+        for (WhereCondition condition : conditions) {
+            if (condition.isExactMatch()) {
+                exactMatchConditions.add(condition);
+            }
+        }
+
+        if (bloomFilter.getSize() != 0 && exactMatchConditions != null && 
+                    conditionsBloomFilter(exactMatchConditions)) {
+            return "No matching records found for update (filtered by Bloom filter).";
         }
 
         int updatedCount = storageInterface.update(update);
@@ -192,7 +220,6 @@ public class Engine {
         // result.append(row.getValue(columns.get(0)));
         // }
         for (RowEntry row : rows) {
-            // for (int i = 1; i < columns.size(); i++) {
             for (int i = 0; i < columns.size(); i++) {
                 result.append(row.getValue(columns.get(i)));
                 result.append("\t");

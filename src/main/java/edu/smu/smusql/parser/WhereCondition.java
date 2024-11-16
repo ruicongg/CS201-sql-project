@@ -76,6 +76,10 @@ public class WhereCondition {
         return operator;
     }
 
+    public boolean isExactMatch() {
+        return operator.equals("=");
+    }
+
     public String getColumn() {
         return column;
     }
