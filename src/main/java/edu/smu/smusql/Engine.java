@@ -18,7 +18,7 @@ public class Engine {
      * CHANGE THIS FOR STORAGE IMPLEMENTATIONS
      */
     // private final StorageInterface storageInterface = new LSMStorage();
-    private final StorageInterface storageInterface = new BSTStorage(); // Change depending on storage type
+    private final StorageInterface storageInterface = new LSMStorage(); // Change depending on storage type
 
     /**
      * REMOVE PARAMETERS TO DISABLE BLOOM FILTER
@@ -26,8 +26,8 @@ public class Engine {
      * @param size
      * @param hashCount
      */
-    private static final int FILTER_SIZE = 128000;
-    private static final int HASH_COUNT = 2;
+    private static final int FILTER_SIZE = 143775;
+    private static final int HASH_COUNT = 10;
     private final BloomFilter bloomFilter = new BloomFilter(FILTER_SIZE, HASH_COUNT);
 
     /*
