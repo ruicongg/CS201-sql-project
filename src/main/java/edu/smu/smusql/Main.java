@@ -56,7 +56,7 @@ public class Main {
                 System.out.print("How many queries would you like to execute? \nsmusql> ");
                 long numQueries = Long.parseLong(scanner.nextLine());
                 System.out.println("What % of queries do you want to be complex? ");
-                System.out.print("1. 100, 2. 50, 3. 0 \nsmusql> ");
+                System.out.print("smusql> ");
                 double complexPercentage = Double.parseDouble(scanner.nextLine()) / 100.0;
 
                 long startTime = System.nanoTime();

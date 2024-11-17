@@ -1,4 +1,4 @@
-package edu.smu.smusql;
+package edu.smu.smusql.bloomfilter;
 
 import java.util.BitSet;
 import java.util.Random;

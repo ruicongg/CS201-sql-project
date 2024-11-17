@@ -1,10 +1,10 @@
-package edu.smu.smusql.bplus;
+package edu.smu.smusql.table;
 
 import edu.smu.smusql.interfaces.StorageInterface;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import edu.smu.smusql.bplus.BPlusTree;
+import edu.smu.smusql.bplus.*;
 import edu.smu.smusql.interfaces.RowEntry;
 import edu.smu.smusql.interfaces.StorageInterface;
 import edu.smu.smusql.parser.*;

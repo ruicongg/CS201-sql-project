@@ -1,5 +1,4 @@
-// LSMFQ.java
-package edu.smu.smusql;
+package edu.smu.smusql.table;
 
 import edu.smu.smusql.interfaces.RowEntry;
 import edu.smu.smusql.interfaces.StorageInterface;
