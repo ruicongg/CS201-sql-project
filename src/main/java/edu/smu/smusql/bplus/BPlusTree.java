@@ -31,7 +31,7 @@ public class BPlusTree {
         }
 
         // Find leaf node to insert into
-        LeafNode ln = (this.root == null) ? this.firstLeaf : findFirstLeafNodeWithMoreThan(this.root, key);
+        LeafNode ln = (this.root == null) ? this.firstLeaf : findLeafNodesEqualTo(this.root, key).get(0);
 
         // Insert into leaf node fails if node becomes overfull
         if (!ln.insert(new DictionaryPair(key, index))) {
@@ -146,9 +146,10 @@ public class BPlusTree {
             return this.firstLeaf.getRowEntriesMoreThan(key);
 
         }
-        LeafNode ln = findFirstLeafNodeWithMoreThan(this.root, key);
+        List<LeafNode> leafNodes = findLeafNodesEqualTo(this.root, key);
+        LeafNode ln = leafNodes.get(leafNodes.size() - 1);
+        res.addAll(ln.getRowEntriesMoreThan(key));
 
-        System.out.println("res: " + res.size());
         while (ln.rightSibling != null) {
             ln = ln.rightSibling;
             res.addAll(ln.getAllEntries());
@@ -164,7 +165,8 @@ public class BPlusTree {
         if (this.root == null) {
             return this.firstLeaf.getRowEntriesMoreThanOrEqual(key);
         }
-        LeafNode ln = findFirstLeafNodeWithMoreThan(this.root, key);
+        List<LeafNode> leafNodes = findLeafNodesEqualTo(this.root, key);
+        LeafNode ln = leafNodes.get(0);
         res.addAll(ln.getRowEntriesMoreThanOrEqual(key));
         while (ln.rightSibling != null) {
             ln = ln.rightSibling;
@@ -181,7 +183,8 @@ public class BPlusTree {
         if (this.root == null) {
             return this.firstLeaf.getRowEntriesLessThan(key);
         }
-        LeafNode ln = findLastLeafNodeWithLessThan(this.root, key);
+        List<LeafNode> leafNodes = findLeafNodesEqualTo(this.root, key);
+        LeafNode ln = leafNodes.get(0);
         res.addAll(ln.getRowEntriesLessThan(key));
         while (ln.leftSibling != null) {
             ln = ln.leftSibling;
@@ -198,7 +201,8 @@ public class BPlusTree {
         if (this.root == null) {
             return this.firstLeaf.getRowEntriesLessThanOrEqual(key);
         }
-        LeafNode ln = findLastLeafNodeWithLessThan(this.root, key);
+        List<LeafNode> leafNodes = findLeafNodesEqualTo(this.root, key);
+        LeafNode ln = leafNodes.get(leafNodes.size() - 1);
         res.addAll(ln.getRowEntriesLessThanOrEqual(key));
         while (ln.leftSibling != null) {
             ln = ln.leftSibling;
@@ -215,19 +219,22 @@ public class BPlusTree {
 
         // Initialize keys and index variable
         String[] keys = node.keys;
-        int i = 0;
 
         List<Node> childNodes = new ArrayList<>();
 
-        while (i < node.degree - 1&& keys[i].compareTo(key) < 0) {
-            i++;
+
+        int indexOfChildToAddInto= 0;
+        
+        while (indexOfChildToAddInto < node.degree - 1 && key.compareTo(keys[indexOfChildToAddInto]) >= 0) {
+            indexOfChildToAddInto++;
         }
-        childNodes.add(node.childPointers[i]);
-        i++;
-        while (i < node.degree - 1 && keys[i].equals(key)) {
-            childNodes.add(node.childPointers[i]);
-            i++;
+        childNodes.add(node.childPointers[indexOfChildToAddInto]);
+        indexOfChildToAddInto++;
+        while (indexOfChildToAddInto < node.degree - 1 && key.equals(keys[indexOfChildToAddInto])) {
+            childNodes.add(node.childPointers[indexOfChildToAddInto]);
+            indexOfChildToAddInto++;
         }
+        
 
         /*
          * Return node if it is a LeafNode object,
@@ -244,45 +251,6 @@ public class BPlusTree {
         }
         return leafNodes;
     }
-    private LeafNode findFirstLeafNodeWithMoreThan(InternalNode node, String key) {
-
-
-        // Initialize keys and index variable
-        String[] keys = node.keys;
-        int i = 0;
-
-        while (i < node.degree - 1 && keys[i].compareTo(key) < 0) {
-            i++;
-        }
-
-        Node childNode = node.childPointers[i];
-        
-        /*
-         * Return node if it is a LeafNode object,
-         * otherwise repeat the search function a level down
-         */
-        if (childNode instanceof LeafNode) {
-            return (LeafNode) childNode;
-            
-        } else {
-            return findFirstLeafNodeWithMoreThan((InternalNode) childNode, key);
-        }
-    }
-
-    private LeafNode findLastLeafNodeWithLessThan(InternalNode node, String key) {
-        String[] keys = node.keys;
-        int i = node.degree - 2;
-        while (i >= 0 && keys[i].compareTo(key) > 0) {
-            i--;
-        }
-        Node childNode = node.childPointers[i];
-        if (childNode instanceof LeafNode) {
-            return (LeafNode) childNode;
-        } else {
-            return findLastLeafNodeWithLessThan((InternalNode) childNode, key);
-        }
-    }
-
     /**
      * This is a simple method that returns the midpoint (or lower bound
      * depending on the context of the method invocation) of the max degree m of

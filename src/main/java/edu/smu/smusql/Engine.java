@@ -25,7 +25,7 @@ public class Engine {
      *      - LSMStorage
      */
     // private final StorageInterface storageInterface = new LSMStorage();
-    private final StorageInterface storageInterface = new LSMStorage(); // Change depending on storage type
+    private final StorageInterface storageInterface = new BPlusTreeStorage(); // Change depending on storage type
 
     /**
      * REMOVE PARAMETERS TO DISABLE BLOOM FILTER
