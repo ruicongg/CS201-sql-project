@@ -73,25 +73,11 @@ public class BPlusTreeStorage implements StorageInterface {
             return table.getAllEntries();
         }
         if (select.getConditions().size() == 1) {
-            List<Integer> indices = processOneWhereConditions(select.getConditions().get(0), table);
-            List<RowEntry> rowEntries = new ArrayList<>();
-            for (Integer index : indices) {
-
-                if (!table.getRow(index).isDeleted()) {
-                    rowEntries.add(table.getRow(index));
-                }
-            }
-            return rowEntries;
+            List<Integer> indices = processOneWhereConditionsSorted(select.getConditions().get(0), table);
+            return getRowsFromSortedIndices(indices, table);
         }
-        List<Integer> indices = processTwoWhereConditions(select.getConditions(), table);
-        List<RowEntry> rowEntries = new ArrayList<>();
-        for (Integer index : indices) {
-
-            if (!table.getRow(index).isDeleted()) {
-                rowEntries.add(table.getRow(index));
-            }
-        }
-        return rowEntries;
+        List<Integer> indices = processTwoWhereConditionsSorted(select.getConditions(), table);
+        return getRowsFromSortedIndices(indices, table);
     }
 
 
@@ -183,5 +169,93 @@ public class BPlusTreeStorage implements StorageInterface {
         return Stream.concat(list1.stream(), list2.stream())
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    private List<Integer> processOneWhereConditionsSorted(WhereCondition whereCondition, BPlusTreeTable table) {
+        List<Integer> indices = processOneWhereConditions(whereCondition, table);
+        return indices.stream().sorted().collect(Collectors.toList());
+    }
+
+    private List<Integer> processTwoWhereConditionsSorted(List<WhereCondition> whereConditions, BPlusTreeTable table) {
+        List<Integer> condition1 = processOneWhereConditionsSorted(whereConditions.get(0), table);
+        List<Integer> condition2 = processOneWhereConditionsSorted(whereConditions.get(1), table);
+        
+        if (whereConditions.get(0).getLogicalOperator().equals("AND")) {
+            return mergeSortedListsIntersection(condition1, condition2);
+        }
+        return mergeSortedListsUnion(condition1, condition2);
+    }
+    
+    private List<Integer> mergeSortedListsIntersection(List<Integer> list1, List<Integer> list2) {
+        List<Integer> result = new ArrayList<>();
+        int i = 0, j = 0;
+        
+        while (i < list1.size() && j < list2.size()) {
+            int val1 = list1.get(i);
+            int val2 = list2.get(j);
+            
+            if (val1 == val2) {
+                result.add(val1);
+                i++;
+                j++;
+            } else if (val1 < val2) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+        return result;
+    }
+    
+    private List<Integer> mergeSortedListsUnion(List<Integer> list1, List<Integer> list2) {
+        List<Integer> result = new ArrayList<>();
+        int i = 0, j = 0;
+        
+        while (i < list1.size() && j < list2.size()) {
+            int val1 = list1.get(i);
+            int val2 = list2.get(j);
+            
+            if (val1 == val2) {
+                result.add(val1);
+                i++;
+                j++;
+            } else if (val1 < val2) {
+                result.add(val1);
+                i++;
+            } else {
+                result.add(val2);
+                j++;
+            }
+        }
+        
+        // Add remaining elements
+        while (i < list1.size()) {
+            result.add(list1.get(i++));
+        }
+        while (j < list2.size()) {
+            result.add(list2.get(j++));
+        }
+        
+        return result;
+    }
+
+    private List<RowEntry> getRowsFromSortedIndices(List<Integer> indices, BPlusTreeTable table) {
+        List<RowEntry> rows = new ArrayList<>();
+        List<RowEntry> inTable = table.getAllEntries();
+        
+        if (indices.isEmpty()) {
+            return rows;
+        }
+        
+        int indicesPointer = 0;
+        for (int i = 0; i < inTable.size() && indicesPointer < indices.size(); i++) {
+            if (i == indices.get(indicesPointer)) {
+                if (!inTable.get(i).isDeleted()) {
+                    rows.add(inTable.get(i));
+                }
+                indicesPointer++;
+            }
+        }
+        return rows;
     }
 }
