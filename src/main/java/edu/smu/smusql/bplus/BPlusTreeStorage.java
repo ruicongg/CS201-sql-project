@@ -86,29 +86,31 @@ public class BPlusTreeStorage implements StorageInterface {
     @Override
     public int update(Update update) {
         BPlusTreeTable table = tables.get(update.getTablename());
-        if (update.getConditions().size() == 1) {
-            List<Integer> indices = processOneWhereConditions(update.getConditions().get(0), table);
-            int numUpdated = 0;
-            for (Integer index : indices) {
-                if (!table.getRow(index).isDeleted()) {
-                    table.updateRow(index, update.getColumnname(), update.getValue());
-                    numUpdated++;
-                }
-            }
-            return numUpdated;
-        }
-        if (update.getConditions().size() == 2) {
-            List<Integer> indices = processTwoWhereConditions(update.getConditions(), table);
-            int numUpdated = 0;
-            for (Integer index : indices) {
-                if (!table.getRow(index).isDeleted()) {
-                    table.updateRow(index, update.getColumnname(), update.getValue());
-                    numUpdated++;
-                }
-            }
-            return numUpdated;
-        }
+    List<Integer> indices;
+    
+    if (update.getConditions().size() == 1) {
+        indices = processOneWhereConditions(update.getConditions().get(0), table);
+    } else if (update.getConditions().size() == 2) {
+        indices = processTwoWhereConditions(update.getConditions(), table);
+    } else {
         return 0;
+    }
+    
+    // Batch process updates
+    int numUpdated = 0;
+    for (Integer index : indices) {
+        if (!table.getRow(index).isDeleted()) {
+            // Remove old value from B+ tree
+            RowEntry row = table.getRow(index);
+            row.setDeleted();
+            
+            // Update value and B+ tree
+            row.addOrUpdateValue(update.getColumnname(), update.getValue());
+            table.addRow(row);
+            numUpdated++;
+        }
+    }
+    return numUpdated;
     }
 
 
