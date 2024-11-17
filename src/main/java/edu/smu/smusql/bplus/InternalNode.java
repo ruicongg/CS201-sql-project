@@ -65,43 +65,6 @@ class InternalNode extends Node {
     }
 
     /**
-     * This simple method determines if the InternalNode is deficient or not.
-     * An InternalNode is deficient when its current degree of children falls
-     * below the allowed minimum.
-     * 
-     * @return a boolean indicating whether the InternalNode is deficient
-     *         or not
-     */
-    boolean isDeficient() {
-        return this.degree < this.minDegree;
-    }
-
-    /**
-     * This simple method determines if the InternalNode is capable of
-     * lending one of its dictionary pairs to a deficient node. An InternalNode
-     * can give away a dictionary pair if its current degree is above the
-     * specified minimum.
-     * 
-     * @return a boolean indicating whether or not the InternalNode has
-     *         enough dictionary pairs in order to give one away.
-     */
-    boolean isLendable() {
-        return this.degree > this.minDegree;
-    }
-
-    /**
-     * This simple method determines if the InternalNode is capable of being
-     * merged with. An InternalNode can be merged with if it has the minimum
-     * degree of children.
-     * 
-     * @return a boolean indicating whether or not the InternalNode can be
-     *         merged with
-     */
-    boolean isMergeable() {
-        return this.degree == this.minDegree;
-    }
-
-    /**
      * This simple method determines if the InternalNode is considered overfull,
      * i.e. the InternalNode object's current degree is one more than the
      * specified maximum.
