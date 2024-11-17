@@ -3,6 +3,7 @@ package edu.smu.smusql;
 import java.util.*;
 import java.util.function.Function;
 
+import edu.smu.smusql.bloomfilter.BloomFilter;
 import edu.smu.smusql.cache.ResultCache;
 import edu.smu.smusql.interfaces.RowEntry;
 import edu.smu.smusql.parser.*;
@@ -10,13 +11,18 @@ import edu.smu.smusql.table.Table;
 import edu.smu.smusql.interfaces.StorageInterface;
 import edu.smu.smusql.table.IndicesStorage;
 import edu.smu.smusql.table.LSMStorage;
-import edu.smu.smusql.table.BSTStorage; // Import BSTStorage
-import edu.smu.smusql.bplus.BPlusTreeStorage;
+import edu.smu.smusql.table.BSTStorage; 
+import edu.smu.smusql.table.BPlusTreeStorage;
 
 public class Engine {
 
     /**
      * CHANGE THIS FOR STORAGE IMPLEMENTATIONS
+     * The following `StorageInterface` are available for testing
+     *      - BPlusTreeStorage
+     *      - BSTStorage
+     *      - IndicesStorage
+     *      - LSMStorage
      */
     // private final StorageInterface storageInterface = new LSMStorage();
     private final StorageInterface storageInterface = new LSMStorage(); // Change depending on storage type
@@ -29,6 +35,8 @@ public class Engine {
      */
     private static final int FILTER_SIZE = 143775;
     private static final int HASH_COUNT = 10;
+    // Uncomment this to remove BloomFilter
+    // private final BloomFilter bloomFilter = new BloomFilter();
     private final BloomFilter bloomFilter = new BloomFilter(FILTER_SIZE, HASH_COUNT);
 
     /*
